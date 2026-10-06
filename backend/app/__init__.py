@@ -1,0 +1,1 @@
+"""FixIt backend application package."""

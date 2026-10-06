@@ -1,0 +1,6 @@
+{
+  "name": "FixIt - Community Problem & Donation Tracking System",
+  "description": "Civic platform for citizens to report community problems, track fixes with verified progress, and view transparent donation and project spending.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

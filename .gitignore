@@ -1,0 +1,39 @@
+# Environment files and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# JavaScript dependencies and generated output
+node_modules/
+dist/
+build/
+coverage/
+.vite/
+
+# Python environments and generated output
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# Deployment metadata and local tooling
+.vercel/
+.supabase/
+
+# Logs, editor files, and operating-system files
+*.log
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
