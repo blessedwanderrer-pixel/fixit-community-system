@@ -172,3 +172,63 @@ async def test_groq_request_has_no_application_timeout_and_no_retry(
 
     assert result.short_summary == "Pipe leak"
     assert captured == {"calls": 1, "timeout": None}
+
+
+@pytest.mark.anyio
+async def test_ai_triage_accepts_pashto_and_preserves_structured_schema(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    class FakeResponse:
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self) -> dict[str, object]:
+            return {
+                "choices": [
+                    {
+                        "message": {
+                            "content": (
+                                '{"short_summary":"Public water pipe leak",'
+                                '"suggested_category":"Water & Civic Sanitation",'
+                                '"priority":"high","community_private_scope":"community",'
+                                '"recommendation":"Inspect the pipe",'
+                                '"reason":"Shared infrastructure is leaking"}'
+                            )
+                        }
+                    }
+                ]
+            }
+
+    class FakeAsyncClient:
+        def __init__(self, *, timeout: object) -> None:
+            captured["timeout"] = timeout
+
+        async def __aenter__(self) -> "FakeAsyncClient":
+            return self
+
+        async def __aexit__(self, *_: object) -> None:
+            return None
+
+        async def post(self, *_: object, **kwargs: object) -> FakeResponse:
+            captured["payload"] = kwargs["json"]
+            return FakeResponse()
+
+    monkeypatch.setattr("app.services.triage.httpx.AsyncClient", FakeAsyncClient)
+    service = GroqTriageService(Settings(groq_api_key="test-groq"))
+    report = ReportCreate(
+        description="زموږ په کوڅه کې د عامه اوبو پایپ لیک دی.",
+        category="Water & Civic Sanitation",
+        latitude=31.5204,
+        longitude=74.3587,
+        photo_reference="tests/report.jpg",
+    )
+
+    result = await service.analyze(report)
+
+    assert result.model_dump().keys() == AITriageResult.model_fields.keys()
+    assert result.suggested_category == "Water & Civic Sanitation"
+    messages = captured["payload"]["messages"]  # type: ignore[index]
+    assert "Pashto" in messages[0]["content"]  # type: ignore[index]
+    assert report.description in messages[1]["content"]  # type: ignore[index]

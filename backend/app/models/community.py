@@ -30,6 +30,7 @@ class AdminAnalytics(BaseModel):
 
 class UpcomingWork(BaseModel):
     tracking_id: str
+    title: str
     category: str | None
     status: str
     scheduled_for: datetime

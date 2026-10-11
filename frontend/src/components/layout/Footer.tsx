@@ -5,8 +5,10 @@ import { ShieldCheck, ArrowRight, ExternalLink } from 'lucide-react';
 
 export const Footer: React.FC = () => {
   return (
-    <footer className="bg-stone-950 text-stone-300 border-t border-stone-800">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 pb-12">
+    <footer className="relative civic-noise overflow-hidden bg-stone-950 text-stone-300 border-t border-stone-800">
+      <div className="absolute inset-0 civic-grid-dark opacity-20 pointer-events-none" aria-hidden="true" />
+      <div className="absolute inset-x-0 top-0 h-1 civic-stripe-accent" aria-hidden="true" />
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10">
           {/* Brand Column */}
           <div className="lg:col-span-2 space-y-4">
@@ -26,7 +28,7 @@ export const Footer: React.FC = () => {
 
           {/* Column 1: Citizen Platform */}
           <div>
-            <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-stone-200 mb-4">
+            <h4 className="civic-label editorial-rule text-stone-200 mb-4">
               Citizen Platform
             </h4>
             <ul className="space-y-2.5 text-sm">
@@ -60,7 +62,7 @@ export const Footer: React.FC = () => {
 
           {/* Column 2: Organization & Work */}
           <div>
-            <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-stone-200 mb-4">
+            <h4 className="civic-label editorial-rule text-stone-200 mb-4">
               Organization
             </h4>
             <ul className="space-y-2.5 text-sm">
@@ -94,7 +96,7 @@ export const Footer: React.FC = () => {
 
           {/* Column 3: Portals & Access */}
           <div>
-            <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-stone-200 mb-4">
+            <h4 className="civic-label editorial-rule text-stone-200 mb-4">
               Access Portals
             </h4>
             <ul className="space-y-2.5 text-sm">

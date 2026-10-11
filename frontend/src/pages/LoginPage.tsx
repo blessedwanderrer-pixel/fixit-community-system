@@ -9,8 +9,10 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { roleHomePath } from '../auth/types';
+import { useFeedback } from '../ui/FeedbackContext';
 
 export const LoginPage: React.FC = () => {
+  const { playFeedback } = useFeedback();
   const navigate = useNavigate();
   const location = useLocation();
   const { signIn, isLoading, error: sessionError } = useAuth();
@@ -27,9 +29,11 @@ export const LoginPage: React.FC = () => {
       const destination = requestedPath && currentUser.role === 'citizen'
         ? requestedPath
         : roleHomePath[currentUser.role];
+      playFeedback('success');
       navigate(destination, { replace: true });
     } catch (cause) {
       setLoginError(cause instanceof Error ? cause.message : 'Authentication failed.');
+      playFeedback('error');
     }
   };
   const visibleError = loginError ?? sessionError;

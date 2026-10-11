@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { lazy, Suspense, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   ArrowRight, 
@@ -9,12 +9,17 @@ import {
   Wrench, 
   ShieldCheck, 
   ArrowUpRight,
+  UserCircle,
+  HardHat,
+  Shield,
 } from 'lucide-react';
 import { SectionHeading } from '../components/common/SectionHeading';
 import { WorkflowTimeline } from '../components/common/WorkflowTimeline';
 import { CTA } from '../components/common/CTA';
 import { EmptyState } from '../components/common/EmptyState';
-import { ASSETS } from '../constants/assets';
+import { ASSETS, responsiveImageProps } from '../constants/assets';
+
+const HammerImpactScene = lazy(() => import('../components/home/HammerImpactScene').then((module) => ({ default: module.HammerImpactScene })));
 
 export const HomePage: React.FC = () => {
   const [quickTrackId, setQuickTrackId] = useState('');
@@ -89,18 +94,20 @@ export const HomePage: React.FC = () => {
       {/* ========================================================================= */}
       {/* SECTION A: HERO */}
       {/* ========================================================================= */}
-      <section className="relative bg-stone-900 text-white overflow-hidden border-b border-stone-800">
+      <section className="relative civic-noise bg-stone-950 text-white overflow-hidden border-b border-stone-800">
         {/* Subtle background civic grid texture */}
         <div className="absolute inset-0 civic-grid-dark opacity-35 pointer-events-none" />
         
         {/* Subtle ambient orange flare */}
-        <div className="absolute -top-32 -right-32 w-96 h-96 bg-orange-600/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -top-32 -right-32 w-[34rem] h-[34rem] bg-orange-600/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute left-[6%] top-0 h-full w-px bg-orange-500/20" aria-hidden="true" />
+        <div className="absolute bottom-0 left-0 right-0 h-px road-marking opacity-60" aria-hidden="true" />
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 lg:py-28">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
             {/* Hero Copy */}
-            <div className="lg:col-span-7 space-y-6">
-              <div className="flex items-center gap-2">
+            <div className="lg:col-span-7 space-y-7 section-reveal">
+              <div className="flex items-center gap-2 editorial-rule">
                 <span className="w-2 h-2 rounded-full bg-orange-500" />
                 <span className="text-xs font-bold uppercase tracking-widest text-orange-400">
                   Citizen Problem & Donation Tracking System
@@ -108,11 +115,11 @@ export const HomePage: React.FC = () => {
               </div>
 
               <h1
-                className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-white leading-none"
+                className="text-5xl sm:text-6xl lg:text-[5.35rem] font-black tracking-[-0.065em] text-white leading-[0.88]"
                 style={{ textWrap: 'balance' }}
               >
                 See a Problem.<br />
-                <span className="text-orange-500">Report It.</span><br />
+                <span className="relative inline-block text-orange-500">Report It.<span className="absolute -right-4 top-1 h-2 w-2 rounded-full bg-orange-500" aria-hidden="true" /></span><br />
                 Track the Fix.
               </h1>
 
@@ -124,7 +131,7 @@ export const HomePage: React.FC = () => {
               <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
                 <Link
                   to="/report"
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3.5 text-base font-bold text-white bg-orange-600 hover:bg-orange-500 rounded transition-colors shadow-lg shadow-orange-950/40 whitespace-nowrap"
+                  className="civic-button-primary inline-flex items-center justify-center gap-2 px-6 py-3.5 text-base font-bold text-white bg-orange-600 hover:bg-orange-500 rounded transition-colors whitespace-nowrap"
                 >
                   <span>Report a Problem</span>
                   <ArrowRight className="w-4 h-4" />
@@ -169,39 +176,49 @@ export const HomePage: React.FC = () => {
               </div>
             </div>
 
-            {/* Hero Visual Card: Civic Action In Focus */}
+            {/* Decorative, isolated interaction: no workflow or API side effects. */}
             <div className="lg:col-span-5">
-              <div className="relative rounded border border-stone-700 bg-stone-800/80 p-2 shadow-2xl backdrop-blur-xs">
-                <div className="relative aspect-4/3 rounded overflow-hidden">
-                  <img
-                    src={ASSETS.heroCivicAction}
-                    alt="FixIt volunteers undertaking community road work in Pakistan"
-                    className="w-full h-full object-cover"
-                    fetchPriority="high"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-stone-950 via-stone-950/20 to-transparent" />
-                  
-                  {/* Process overlay */}
-                  <div className="absolute bottom-4 left-4 right-4 p-3.5 rounded bg-stone-900/90 border border-stone-700 backdrop-blur-md">
-                    <p className="text-xs font-mono font-bold text-orange-400">AUTHENTICATED REPORTING</p>
-                    <p className="mt-1 text-xs text-stone-300">Citizen submits → Admin reviews → Coordinator schedules and records progress</p>
-                  </div>
-                </div>
-
-                <div className="p-3 text-xs text-stone-400 flex items-center justify-between">
-                  <span>Community action in focus</span>
-                  <span className="font-mono text-stone-500">FixIt Pakistan</span>
-                </div>
-              </div>
+              <Suspense fallback={<div className="hammer-experience hammer-experience--loading" aria-label="Loading interactive civic repair visual" />}>
+                <HammerImpactScene />
+              </Suspense>
             </div>
           </div>
 
           {/* Workflow Ribbon */}
-          <div className="mt-14 pt-8 border-t border-stone-800/80">
-            <div className="text-xs font-mono font-bold uppercase tracking-widest text-stone-400 mb-4">
+          <div className="mt-16 rounded-xl border border-stone-800 bg-stone-950/60 p-5 sm:p-7 backdrop-blur-sm">
+            <div className="civic-label text-stone-400 mb-6 editorial-rule">
               Transparent Operational Lifecycle
             </div>
             <WorkflowTimeline mode="compact" />
+          </div>
+        </div>
+      </section>
+
+      {/* Role map: presentation only; access rules remain enforced by existing guards. */}
+      <section className="border-b border-stone-200 bg-[#faf8f2] py-16 sm:py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <SectionHeading
+            kicker="One Platform · Three Roles"
+            title="Clear responsibility at every step."
+            subtitle="Citizens surface the problem, coordinators organize field action, and administrators protect the integrity of every decision."
+          />
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            {[
+              { label: 'Citizen', title: 'Report & Track', note: 'Submit verified reports and follow their progress.', icon: UserCircle, code: '01' },
+              { label: 'Coordinator', title: 'Manage Field Work', note: 'Schedule action and record required evidence.', icon: HardHat, code: '02' },
+              { label: 'Admin', title: 'Verify & Approve', note: 'Review reports, finances, and final decisions.', icon: Shield, code: '03' },
+            ].map((role) => {
+              const Icon = role.icon;
+              return (
+                <article key={role.label} className="civic-card group relative overflow-hidden bg-white p-6 sm:p-7">
+                  <div className="absolute right-0 top-0 h-16 w-16 border-b border-l border-stone-200 bg-stone-50 text-center font-mono text-[10px] leading-[4rem] text-stone-400 group-hover:bg-orange-50 group-hover:text-orange-600">{role.code}</div>
+                  <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-stone-950 text-orange-400 shadow-lg"><Icon className="h-5 w-5" /></div>
+                  <div className="civic-label mt-7 text-orange-600">{role.label}</div>
+                  <h3 className="mt-2 text-2xl font-bold text-stone-950">{role.title}</h3>
+                  <p className="mt-2 max-w-xs text-sm leading-relaxed text-stone-600">{role.note}</p>
+                </article>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -426,10 +443,11 @@ export const HomePage: React.FC = () => {
                 <div>
                   <div className="relative aspect-16/10 bg-stone-100 overflow-hidden">
                     <img
-                      src={item.image}
+                      {...responsiveImageProps(item.image, '(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw')}
                       alt={item.title}
                       className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300"
                       loading="lazy"
+                      decoding="async"
                     />
                     <div className="absolute top-3 left-3 bg-stone-900/90 text-white text-xs font-medium px-2 py-0.5 rounded">
                       {item.category}

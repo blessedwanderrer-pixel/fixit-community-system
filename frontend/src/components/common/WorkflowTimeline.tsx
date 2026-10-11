@@ -144,39 +144,38 @@ export const WorkflowTimeline: React.FC<WorkflowTimelineProps> = ({
   const [activeStep, setActiveStep] = useState(3); // Default on AI Triage to highlight the advisory aspect
 
   if (mode === 'compact') {
-    // 5-step simplified flow for Homepage: REPORT → REVIEW → SCHEDULE → IN PROGRESS → SOLVED
+    // Visual summary only; the full workflow and its rules remain unchanged.
     const compactSteps = [
-      { step: '01', label: 'REPORT', desc: 'Citizen submits issue' },
-      { step: '02', label: 'REVIEW', desc: 'FixIt admins evaluate' },
-      { step: '03', label: 'SCHEDULE', desc: 'Coordinator sets schedule' },
-      { step: '04', label: 'IN PROGRESS', desc: 'On-ground repair begins' },
-      { step: '05', label: 'SOLVED', desc: 'Safe summary may be public' },
+      { step: '01', label: 'REPORT', desc: 'Citizen submits issue', icon: FileText },
+      { step: '02', label: 'AI TRIAGE', desc: 'Advisory analysis', icon: Cpu },
+      { step: '03', label: 'ADMIN REVIEW', desc: 'Human decision', icon: CheckCircle2 },
+      { step: '04', label: 'COORDINATOR', desc: 'Work is scheduled', icon: Calendar },
+      { step: '05', label: 'FIELD WORK', desc: 'On-ground action', icon: Wrench },
+      { step: '06', label: 'SOLVED', desc: 'Evidence verified', icon: CheckCheck },
     ];
 
     return (
-      <div className={`w-full ${className}`}>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 lg:gap-4">
-          {compactSteps.map((item, idx) => (
-            <div
-              key={item.step}
-              className="relative p-4 rounded border border-stone-200 bg-white shadow-xs hover:border-orange-300 transition-colors"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-mono font-bold text-orange-600">
-                  {item.step}
-                </span>
-                {idx < compactSteps.length - 1 && (
-                  <ArrowRight className="hidden md:block w-3.5 h-3.5 text-stone-300 absolute -right-2 top-1/2 -translate-y-1/2 z-10 bg-white" />
-                )}
+      <div className={`w-full relative ${className}`}>
+        <div className="absolute left-8 right-8 top-8 hidden h-px overflow-hidden bg-stone-700 lg:block" aria-hidden="true">
+          <span className="workflow-scan block h-px w-1/3 bg-gradient-to-r from-transparent via-orange-400 to-transparent" />
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 lg:gap-2">
+          {compactSteps.map((item, idx) => {
+            const Icon = item.icon;
+            return (
+              <div key={item.step} className="group relative min-w-0">
+                <div className="relative z-10 mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-stone-700 bg-stone-950 text-stone-300 shadow-[0_0_0_7px_rgba(12,10,9,.95)] group-hover:border-orange-500 group-hover:text-orange-400">
+                  <Icon className="h-5 w-5" />
+                  <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-orange-600 font-mono text-[9px] font-bold text-white">{item.step}</span>
+                </div>
+                <div className="rounded-lg border border-stone-800 bg-stone-900/80 px-3 py-4 text-center group-hover:-translate-y-1 group-hover:border-orange-500/60">
+                  <h4 className="text-[11px] font-bold tracking-[0.08em] text-white">{item.label}</h4>
+                  <p className="mt-1 text-[11px] leading-snug text-stone-500">{item.desc}</p>
+                </div>
+                {idx < compactSteps.length - 1 && <ArrowRight className="absolute -right-2.5 top-7 z-20 hidden h-3.5 w-3.5 text-orange-500 lg:block" />}
               </div>
-              <h4 className="text-sm font-bold text-stone-900 tracking-tight">
-                {item.label}
-              </h4>
-              <p className="text-xs text-stone-500 mt-1 leading-snug">
-                {item.desc}
-              </p>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     );

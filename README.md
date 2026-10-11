@@ -4,7 +4,7 @@ FixIt is a community-service platform for reporting local problems, coordinating
 
 ## Production
 
-- Frontend: https://fixit-frontend.vercel.app
+- Frontend: https://fixit-community-web.vercel.app
 - Backend API: https://fixit-community-api.vercel.app
 - Health check: https://fixit-community-api.vercel.app/health
 
@@ -23,9 +23,27 @@ FixIt is a community-service platform for reporting local problems, coordinating
 5. Status changes create in-app notifications for the reporting Citizens, including Citizens attached through a merged report.
 6. Verified donations and approved spending are aggregated for the public transparency view, while proofs, receipts, identities, and internal review data remain private.
 
+## Current features
+
+- Optional Urdu and Pashto AI Voice Complaint Assistant alongside the unchanged manual complaint form.
+- Browser-based recording with editable transcription, editable complaint text, and a suggested category before submission.
+- Groq Whisper multilingual speech transcription using explicit Urdu (`ur`) and Pashto (`ps`) language selection.
+- Schema-validated AI triage that summarizes complaints, assigns advisory priority, and supports English, Urdu, and Pashto descriptions without changing the report workflow.
+- Privacy-conscious duplicate detection for nearby reports, with Admin-only review and explicit merging.
+- Role-based Citizen, Admin, and Coordinator dashboards and permissions.
+- Scheduled and upcoming-work views, progress tracking, and before/after evidence requirements for solved work.
+- Donation-proof submission, Admin verification, expense review, and public financial transparency totals.
+- Responsive civic-tech UI with accessible motion preferences and optional interaction-driven sound effects.
+
+Voice assistance is optional and never submits a report automatically. Citizens can edit, replace, or clear the generated text, and both voice-assisted and manually typed complaints use the same existing validation and submission workflow.
+
 ## AI triage
 
-The backend can send a newly submitted report to Groq for structured triage. The response is schema-validated and stored only as advisory information for Admin review. AI cannot approve, reject, or merge reports, and an AI/network failure does not discard an already submitted report.
+The backend can send a newly submitted report to Groq for structured triage. The response is schema-validated and stored only as advisory information for Admin review. It accepts complaint descriptions in English, Urdu, and Pashto while preserving the existing output schema. AI cannot approve, reject, or merge reports, and an AI/network failure does not discard an already submitted report.
+
+## AI voice complaints
+
+Authenticated Citizens can optionally record a complaint in Urdu or Pashto from the existing report form. The backend sends the selected language code and audio to Groq Whisper, then returns a transcription, an editable complaint draft, and a category suggestion from FixIt's supported categories. Urdu remains the default language, Pashto never silently falls back to Urdu, and recording limits, MIME validation, authentication, and manual editing remain enforced. Audio transcription does not automatically create or submit a report.
 
 ## Duplicate detection within 100 m
 
@@ -40,7 +58,7 @@ Donation proof and expense receipts are stored privately and reviewed manually. 
 - Frontend: React 19, TypeScript, Vite, React Router, Tailwind CSS, Motion, Supabase JS
 - Backend: Python, FastAPI, Pydantic Settings, HTTPX, Pillow
 - Data and auth: Supabase Postgres, PostGIS, Auth, Row Level Security, private Storage buckets
-- AI triage: Groq API with structured output validation
+- AI services: Groq Whisper for Urdu/Pashto transcription and Groq structured output for advisory triage
 - Deployment: Vercel (separate frontend and backend projects)
 - Testing: Pytest for backend behavior and migration contracts; TypeScript type checking and Vite production builds for the frontend
 
@@ -103,9 +121,9 @@ Backend:
 
 ## Testing
 
-Backend tests cover health, authentication and role enforcement, report workflow transitions, duplicate detection, AI triage failure handling, media sanitization, donations, expenses, transparency, community endpoints, and migration contracts. Frontend verification uses TypeScript's no-emit check and a production Vite build.
+Backend tests cover health, authentication and role enforcement, report workflow transitions, Urdu/Pashto voice complaint processing, duplicate detection, AI triage failure handling, media sanitization, donations, expenses, transparency, community endpoints, and migration contracts. Frontend verification uses TypeScript's no-emit check and a production Vite build.
 
-Latest pre-publication verification: **75 backend tests passed**, the frontend TypeScript check passed, and the frontend production build completed successfully. The build reports only advisory warnings about a future Vite config-loader change and bundle chunk size.
+Latest repository verification: **90 backend tests passed**, the frontend TypeScript/lint check passed, and the frontend production build completed successfully. The build reports only advisory warnings about a future Vite config-loader change and bundle chunk size.
 
 Run the checks locally:
 

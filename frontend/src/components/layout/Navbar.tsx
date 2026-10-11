@@ -46,9 +46,10 @@ export const Navbar: React.FC = () => {
     }`;
 
   return (
-    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-stone-200">
+    <header className="sticky top-0 z-50 bg-[#faf8f2]/95 backdrop-blur-xl border-b border-stone-300/80 shadow-[0_8px_30px_-28px_rgba(0,0,0,.8)]">
       {/* Top Banner Notice: New Civic Platform */}
-      <div className="bg-stone-900 text-stone-300 text-xs py-1.5 px-4 text-center border-b border-stone-800">
+      <div className="relative overflow-hidden bg-stone-950 text-stone-300 text-xs py-1.5 px-4 text-center border-b border-stone-800">
+        <div className="absolute inset-x-0 bottom-0 h-px road-marking opacity-40" aria-hidden="true" />
         <div className="max-w-7xl mx-auto flex items-center justify-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
           <span className="font-medium text-stone-200">
@@ -63,7 +64,7 @@ export const Navbar: React.FC = () => {
 
       {/* Primary Top Bar adhering to the 3-Zone Contract */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 sm:h-20">
+        <div className="flex items-center justify-between h-16 sm:h-[4.75rem]">
           {/* ZONE 1: Brand Wordmark */}
           <div className="shrink-0 flex items-center">
             <FixItLogo size="md" variant="light" />
@@ -78,7 +79,7 @@ export const Navbar: React.FC = () => {
             ))}
 
             {/* "More" dropdown for secondary items to maintain top-bar breathability */}
-            <div className="relative">
+            <div className="relative border-l border-stone-300 pl-6">
               <button
                 onClick={() => setMoreMenuOpen(!moreMenuOpen)}
                 onBlur={() => setTimeout(() => setMoreMenuOpen(false), 200)}
@@ -90,7 +91,7 @@ export const Navbar: React.FC = () => {
               </button>
 
               {moreMenuOpen && (
-                <div className="absolute right-0 mt-2 w-56 rounded border border-stone-200 bg-white shadow-lg py-1.5 z-50">
+                <div className="absolute right-0 mt-3 w-60 rounded-lg border border-stone-200 bg-[#fffdfa] shadow-2xl py-2 z-50 overflow-hidden">
                   {secondaryLinks.map((item) => (
                     <Link
                       key={item.path}
@@ -137,7 +138,7 @@ export const Navbar: React.FC = () => {
 
             <Link
               to="/report"
-              className="px-4 py-2 text-xs font-bold text-white bg-orange-600 hover:bg-orange-500 rounded transition-colors whitespace-nowrap inline-flex items-center gap-1.5 shadow-xs"
+              className="civic-button-primary px-4 py-2.5 text-xs font-bold text-white bg-orange-600 hover:bg-orange-500 rounded transition-colors whitespace-nowrap inline-flex items-center gap-1.5"
             >
               <AlertCircle className="w-3.5 h-3.5" />
               <span>Report a Problem</span>
@@ -166,7 +167,7 @@ export const Navbar: React.FC = () => {
 
       {/* Mobile Navigation Drawer */}
       {mobileMenuOpen && (
-        <div className="lg:hidden border-t border-stone-200 bg-white px-4 pt-3 pb-6 space-y-1">
+        <div className="lg:hidden border-t border-stone-200 bg-[#faf8f2] px-4 pt-3 pb-6 space-y-1 shadow-2xl section-reveal">
           {allNavLinks.map((link) => (
             <Link
               key={link.path}

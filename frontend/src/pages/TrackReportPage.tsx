@@ -14,6 +14,7 @@ import { useAuth } from '../auth/AuthContext';
 import { PageHero } from '../components/common/PageHero';
 import { CTA } from '../components/common/CTA';
 import { ApiError, apiRequest } from '../lib/api';
+import { useFeedback } from '../ui/FeedbackContext';
 
 type ReportStatus = 'Submitted' | 'Approved' | 'Rejected' | 'Scheduled' | 'In Progress' | 'Solved' | 'Cancelled';
 
@@ -69,6 +70,7 @@ const buildTimeline = (report: TrackingReport): TimelineEvent[] => {
 };
 
 export const TrackReportPage: React.FC = () => {
+  const { playFeedback } = useFeedback();
   const { session } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [trackingId, setTrackingId] = useState(searchParams.get('id')?.toUpperCase() ?? '');
@@ -101,12 +103,14 @@ export const TrackReportPage: React.FC = () => {
       });
       setReport(result);
       setSearchParams({ id: result.tracking_id }, { replace: true });
+      playFeedback(result.status === 'Solved' ? 'complete' : 'success');
     } catch (cause) {
       if (cause instanceof ApiError && cause.status === 404) {
         setNotFound(true);
       } else {
         setError(cause instanceof Error ? cause.message : 'Unable to track this report.');
       }
+      playFeedback('error');
     } finally {
       setLoading(false);
     }
@@ -144,7 +148,7 @@ export const TrackReportPage: React.FC = () => {
           {notFound && <div role="status" className="mt-6 rounded border border-amber-200 bg-amber-50 p-5 flex items-start gap-3"><AlertTriangle className="w-5 h-5 text-amber-700 shrink-0" /><div><h2 className="text-sm font-black text-amber-950">Report unavailable</h2><p className="mt-1 text-sm text-amber-900">No report linked to your Citizen account was found for that tracking ID. Check the ID and try again.</p></div></div>}
           {error && <div role="alert" className="mt-6 rounded border border-red-200 bg-red-50 p-5 flex items-start gap-3"><AlertTriangle className="w-5 h-5 text-red-700 shrink-0" /><span className="text-sm text-red-900">{error}</span></div>}
 
-          {report && <div className="mt-8 space-y-6">
+          {report && <div className="tracking-result-reveal mt-8 space-y-6">
             <article className="rounded border border-stone-200 bg-white p-6 sm:p-8 shadow-xs">
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-6 border-b border-stone-200"><div><div className="text-xs font-mono font-bold text-orange-700">{report.tracking_id}</div><h2 className="mt-2 text-2xl font-black text-stone-900">{report.category ?? 'Uncategorized'}</h2><p className="mt-1 text-xs text-stone-500">Submitted {formatDate(report.created_at)}</p></div><span className={`w-fit rounded border px-3 py-1.5 text-sm font-bold ${statusClasses[report.status]}`}>{report.status}</span></div>
 

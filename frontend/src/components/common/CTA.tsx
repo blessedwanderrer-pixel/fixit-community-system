@@ -14,10 +14,11 @@ export const CTA: React.FC<CTAProps> = ({
   className = "",
 }) => {
   return (
-    <section className={`relative overflow-hidden bg-stone-900 text-white py-16 sm:py-20 border-y border-stone-800 ${className}`}>
+    <section className={`relative civic-noise overflow-hidden bg-stone-950 text-white py-20 sm:py-24 border-y border-stone-800 ${className}`}>
       {/* Background Accent Stripe */}
       <div className="absolute top-0 left-0 right-0 h-1 civic-stripe-accent" />
       <div className="absolute inset-0 civic-grid-dark opacity-30 pointer-events-none" />
+      <div className="absolute left-1/2 top-1/2 h-72 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full bg-orange-600/10 blur-3xl" aria-hidden="true" />
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto text-center">
@@ -40,7 +41,7 @@ export const CTA: React.FC<CTAProps> = ({
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
               to="/report"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 text-base font-bold text-white bg-orange-600 hover:bg-orange-500 rounded transition-colors shadow-lg shadow-orange-950/30 whitespace-nowrap"
+              className="civic-button-primary w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 text-base font-bold text-white bg-orange-600 hover:bg-orange-500 rounded transition-colors whitespace-nowrap"
             >
               <span>Report a Problem</span>
               <ArrowRight className="w-4 h-4" />

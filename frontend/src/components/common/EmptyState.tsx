@@ -22,33 +22,34 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
 }) => {
   return (
     <div
-      className={`rounded border border-dashed border-stone-300 bg-stone-50/70 p-8 sm:p-12 text-center flex flex-col items-center justify-center ${className}`}
+      className={`relative overflow-hidden rounded-lg border border-dashed border-stone-300 bg-[linear-gradient(135deg,#fafaf9_0%,#f5f2eb_100%)] p-8 sm:p-12 text-center flex flex-col items-center justify-center ${className}`}
     >
-      <div className="w-12 h-12 rounded bg-white border border-stone-200 flex items-center justify-center text-stone-500 shadow-xs mb-4">
-        <Icon className="w-6 h-6 text-stone-600" />
+      <div className="absolute inset-0 civic-grid-pattern opacity-40 pointer-events-none" aria-hidden="true" />
+      <div className="relative w-12 h-12 rounded-lg bg-stone-950 border border-stone-800 flex items-center justify-center text-orange-500 shadow-lg mb-4">
+        <Icon className="w-6 h-6" />
       </div>
 
-      <div className="inline-flex items-center gap-1.5 text-xs font-mono font-semibold uppercase tracking-wider text-stone-500 bg-stone-200/60 px-2.5 py-1 rounded mb-3">
+      <div className="relative inline-flex items-center gap-1.5 text-xs font-mono font-semibold uppercase tracking-wider text-stone-500 bg-white px-2.5 py-1 rounded border border-stone-200 mb-3">
         <ShieldCheck className="w-3.5 h-3.5 text-orange-600" />
         <span>{badge}</span>
       </div>
 
-      <h3 className="text-lg font-bold text-stone-900 tracking-tight max-w-md">
+      <h3 className="relative text-lg font-bold text-stone-900 tracking-tight max-w-md">
         {title}
       </h3>
 
-      <p className="mt-2 text-sm text-stone-600 max-w-lg leading-relaxed">
+      <p className="relative mt-2 text-sm text-stone-600 max-w-lg leading-relaxed">
         {description}
       </p>
 
       {note && (
-        <div className="mt-4 flex items-center gap-1.5 text-xs text-stone-500 font-mono">
+        <div className="relative mt-4 flex items-center gap-1.5 text-xs text-stone-500 font-mono">
           <Clock className="w-3.5 h-3.5" />
           <span>{note}</span>
         </div>
       )}
 
-      {action && <div className="mt-6">{action}</div>}
+      {action && <div className="relative mt-6">{action}</div>}
     </div>
   );
 };

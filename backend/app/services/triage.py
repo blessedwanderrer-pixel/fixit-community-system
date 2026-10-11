@@ -41,7 +41,9 @@ class GroqTriageService:
                     "content": (
                         "You are the advisory triage agent for a community problem-reporting system. "
                         "Provide triage advice only. Never approve, reject, merge, or make a final "
-                        "workflow decision. The recommendation is reviewed by an administrator."
+                        "workflow decision. The recommendation is reviewed by an administrator. "
+                        "Citizen descriptions may be written in English, Urdu, or Pashto; understand "
+                        "the original language and return the same required structured schema."
                     ),
                 },
                 {

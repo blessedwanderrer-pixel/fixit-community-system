@@ -28,7 +28,7 @@ export const TransparencyCard: React.FC<TransparencyCardProps> = ({
 }) => {
   return (
     <div
-      className={`rounded border border-stone-200 bg-white p-6 sm:p-7 flex flex-col justify-between hover:border-stone-300 transition-colors shadow-xs ${className}`}
+      className={`civic-card rounded-lg border border-stone-200 bg-white p-6 sm:p-7 flex flex-col justify-between hover:border-orange-300 transition-colors ${className}`}
     >
       <div>
         <div className="flex items-center justify-between gap-4 mb-4">

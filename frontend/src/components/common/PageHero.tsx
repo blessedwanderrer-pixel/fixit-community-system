@@ -24,13 +24,15 @@ export const PageHero: React.FC<PageHeroProps> = ({
 }) => {
   return (
     <section
-      className={`relative bg-stone-900 text-white pt-14 pb-16 md:pt-20 md:pb-24 border-b border-stone-800 overflow-hidden ${className}`}
+      className={`relative civic-noise bg-stone-950 text-white pt-14 pb-16 md:pt-20 md:pb-24 border-b border-stone-800 overflow-hidden ${className}`}
     >
       {/* Background Civic Grid Pattern */}
       <div className="absolute inset-0 civic-grid-dark opacity-40 pointer-events-none" />
       
       {/* Subtle safety orange accent glow in corner */}
       <div className="absolute -top-24 -right-24 w-96 h-96 bg-orange-600/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute left-[7%] top-0 h-full w-px bg-orange-500/25 pointer-events-none" aria-hidden="true" />
+      <div className="absolute left-[7%] top-8 h-2 w-2 -translate-x-1/2 rounded-full bg-orange-500 pointer-events-none" aria-hidden="true" />
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Breadcrumb line if available */}
@@ -55,8 +57,8 @@ export const PageHero: React.FC<PageHeroProps> = ({
         )}
 
         <div className="max-w-3xl">
-          <div className="flex flex-wrap items-center gap-3 mb-4">
-            <span className="text-xs font-bold uppercase tracking-widest text-orange-400">
+          <div className="flex flex-wrap items-center gap-3 mb-5">
+            <span className="civic-label text-orange-400 editorial-rule">
               {kicker}
             </span>
             {badgeText && (
@@ -68,7 +70,7 @@ export const PageHero: React.FC<PageHeroProps> = ({
           </div>
 
           <h1
-            className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-white leading-tight"
+            className="text-4xl sm:text-5xl md:text-6xl font-black tracking-[-0.055em] text-white leading-[0.98]"
             style={{ textWrap: 'balance' }}
           >
             {title}
@@ -83,7 +85,7 @@ export const PageHero: React.FC<PageHeroProps> = ({
               {actionPrimary && (
                 <Link
                   to={actionPrimary.href}
-                  className="inline-flex items-center justify-center px-5 py-2.5 text-sm font-bold text-white bg-orange-600 hover:bg-orange-500 rounded transition-colors shadow-sm whitespace-nowrap"
+                  className="civic-button-primary inline-flex items-center justify-center px-5 py-3 text-sm font-bold text-white bg-orange-600 hover:bg-orange-500 rounded transition-colors whitespace-nowrap"
                 >
                   {actionPrimary.label}
                 </Link>

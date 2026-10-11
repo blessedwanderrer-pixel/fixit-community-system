@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import { PageHero } from '../components/common/PageHero';
 import { SectionHeading } from '../components/common/SectionHeading';
@@ -21,7 +21,9 @@ import {
   Activity,
   Briefcase
 } from 'lucide-react';
-import { ASSETS } from '../constants/assets';
+import { ASSETS, responsiveImageProps } from '../constants/assets';
+
+const CrackTheScreen = lazy(() => import('../components/about/CrackTheScreen').then((module) => ({ default: module.CrackTheScreen })));
 
 export const AboutPage: React.FC = () => {
   const evolutionPhases = [
@@ -154,7 +156,7 @@ export const AboutPage: React.FC = () => {
                     </span>
                   </div>
                   <div className="relative aspect-square w-full rounded bg-stone-50 overflow-hidden border border-stone-200 flex items-center justify-center">
-                    <img src={ASSETS.heroCivicAction} alt="FixIt community volunteers at work" className="w-full h-full object-cover" />
+                    <img {...responsiveImageProps(ASSETS.heroCivicAction, '(min-width: 1024px) 40vw, 100vw')} alt="FixIt community volunteers at work" className="w-full h-full object-cover" decoding="async" />
                   </div>
                   <div className="pt-3.5 space-y-1">
                     <div className="flex items-center gap-2">
@@ -174,73 +176,82 @@ export const AboutPage: React.FC = () => {
         </div>
       </section>
 
+      {/* Decorative simulation only; it has no connection to reports or application state. */}
+      <section className="experience-the-fix py-16 sm:py-24 border-b border-stone-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <SectionHeading
+            kicker="Interactive Civic Experience"
+            title="Experience the Fix"
+            subtitle="Crack the surface, activate the repair, and watch a visible problem become a solution. This lightweight experience is illustrative and does not represent a real report or completed project."
+            variant="dark"
+          />
+          <Suspense fallback={<div className="crack-screen crack-screen--loading" aria-label="Loading interactive repair demonstration" />}>
+            <CrackTheScreen />
+          </Suspense>
+        </div>
+      </section>
+
       {/* ========================================================================= */}
       {/* SECTION: FOUNDER & LEADERSHIP */}
       {/* ========================================================================= */}
       <section className="py-16 sm:py-24 bg-stone-50 border-b border-stone-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <SectionHeading
-            kicker="Organizational Leadership"
-            title="Leadership Driven by Civic Courage"
-            subtitle="FixIt was founded on the conviction that everyday citizens hold the right and duty to demand accountability and pioneer tangible solutions."
+            kicker="The People Behind FixIt"
+            title="Civic action, documented and delivered together."
+            subtitle="Alamgir Khan, Adnan Khan, and Qazi Sheraz are recognized for their public activism, digital storytelling, and community-focused work associated with Pakistan's FixIt movement."
           />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            {/* Founder: Alamgir Khan */}
-            <div className="rounded border border-stone-200 bg-white p-6 sm:p-8 shadow-xs flex flex-col justify-between">
-              <div>
-                <div className="w-12 h-12 rounded bg-orange-100 border border-orange-200 text-orange-600 flex items-center justify-center font-bold text-lg mb-4">
-                  AK
-                </div>
-                <div className="text-xs font-mono font-bold uppercase tracking-wider text-orange-600 mb-1">
-                  Founder & Chairman
-                </div>
-                <h3 className="text-2xl font-bold text-stone-900">
-                  Alamgir Khan
-                </h3>
-                <div className="text-xs text-stone-500 mb-4">FixIt Pakistan</div>
-
-                <p className="text-sm text-stone-700 leading-relaxed">
-                  Alamgir Khan launched FixIt with the belief that citizens should not simply wait for governance to improve from above, but must actively challenge municipal neglect and build working civic solutions on the ground.
-                </p>
-
-                <p className="mt-3 text-sm text-stone-700 leading-relaxed">
-                  His vision transformed a local street protest into a multifaceted national welfare and infrastructure initiative that has inspired thousands of Pakistani youth to participate directly in community service.
-                </p>
-              </div>
-
-              <div className="mt-6 pt-4 border-t border-stone-100 text-xs font-mono text-stone-500">
-                FixIt Pakistan Leadership
+          <figure className="civic-card image-frame relative mx-auto mb-8 max-w-5xl overflow-hidden rounded-xl bg-white p-2 sm:p-3">
+            <div className="relative aspect-square overflow-hidden rounded-lg bg-stone-100 sm:aspect-[16/10]">
+              <img
+                {...responsiveImageProps(ASSETS.teamPortrait, '(min-width: 1024px) 1024px, 100vw')}
+                alt="Alamgir Khan, Adnan Khan, and Qazi Sheraz together in #FIXIT shirts"
+                className="h-full w-full object-cover object-top"
+                loading="lazy"
+                decoding="async"
+              />
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-stone-950/90 via-stone-950/35 to-transparent px-5 pb-5 pt-20 sm:px-7 sm:pb-7">
+                <figcaption className="text-sm font-semibold text-white sm:text-base">
+                  Alamgir Khan · Adnan Khan · Qazi Sheraz
+                </figcaption>
+                <p className="mt-1 text-xs text-stone-300">Public activism, community action, and digital documentation</p>
               </div>
             </div>
+          </figure>
 
-            {/* Co-Founder: Syed Muhammad Taha */}
-            <div className="rounded border border-stone-200 bg-white p-6 sm:p-8 shadow-xs flex flex-col justify-between">
-              <div>
-                <div className="w-12 h-12 rounded bg-stone-100 border border-stone-200 text-stone-700 flex items-center justify-center font-bold text-lg mb-4">
-                  ST
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+            {[
+              {
+                initials: 'AK',
+                role: 'Founder · Public Activist',
+                name: 'Alamgir Khan',
+                description: 'Founder of the FixIt organization and a prominent Pakistani political activist. He gained nationwide recognition in 2016 through a campaign that placed portraits of the Sindh Chief Minister beside open manholes in Karachi to spotlight government neglect. He later served as a Member of the National Assembly from 2018 to 2023.',
+              },
+              {
+                initials: 'AD',
+                role: 'Activist · Entrepreneur',
+                name: 'Adnan Khan',
+                description: 'An activist, entrepreneur, and key member of the FixIt initiative. He collaborates with Alamgir Khan on regional efforts including FixIt Nowshera, documenting community welfare work, civic repairs, and public-service activities through digital media.',
+              },
+              {
+                initials: 'QS',
+                role: 'Digital Creator · Media Collaborator',
+                name: 'Qazi Sheraz',
+                description: 'A digital creator and media collaborator who works alongside Adnan Khan and Alamgir Khan. He helps document, film, and share their civic campaigns and community rescue operations across social media platforms.',
+              },
+            ].map((person, index) => (
+              <article key={person.name} className="civic-card group relative flex flex-col overflow-hidden rounded-lg bg-white p-6 sm:p-7">
+                <span className="absolute right-5 top-5 font-mono text-xs text-stone-300">0{index + 1}</span>
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg border border-orange-200 bg-orange-50 font-bold text-orange-700">
+                  {person.initials}
                 </div>
-                <div className="text-xs font-mono font-bold uppercase tracking-wider text-stone-600 mb-1">
-                  Co-Founder
-                </div>
-                <h3 className="text-2xl font-bold text-stone-900">
-                  Syed Muhammad Taha
-                </h3>
-                <div className="text-xs text-stone-500 mb-4">FixIt Pakistan</div>
-
-                <p className="text-sm text-stone-700 leading-relaxed">
-                  Syed Muhammad Taha co-founded FixIt, playing a central role in organizing ground-level volunteer networks, coordinating emergency civic responses, and expanding FixIt's operational footprint across key urban corridors.
-                </p>
-
-                <p className="mt-3 text-sm text-stone-700 leading-relaxed">
-                  His work helped establish structured welfare programs alongside civic activism, institutionalizing FixIt's commitment to youth welfare, community health, and long-term social impact.
-                </p>
-              </div>
-
-              <div className="mt-6 pt-4 border-t border-stone-100 text-xs font-mono text-stone-500">
-                FixIt Pakistan Co-Founder
-              </div>
-            </div>
+                <div className="civic-label mt-6 text-orange-600">{person.role}</div>
+                <h3 className="mt-2 text-2xl font-bold text-stone-950">{person.name}</h3>
+                <p className="mt-4 flex-1 text-sm leading-7 text-stone-600">{person.description}</p>
+                <div className="mt-6 h-1 w-10 bg-orange-500 transition-all duration-300 group-hover:w-20" aria-hidden="true" />
+              </article>
+            ))}
           </div>
         </div>
       </section>

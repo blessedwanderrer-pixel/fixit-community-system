@@ -1,3 +1,4 @@
+import asyncio
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
@@ -8,11 +9,13 @@ from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 from app.api.routes.community import get_community_service
+from app.core.config import Settings
 from app.core.security import AppRole, CurrentUser, get_current_user
 from app.main import app
 from app.models.community import (
     AdminAnalytics, FinancialAnalytics, Notification, ProblemAnalytics, UpcomingWork,
 )
+from app.services.community import CommunityService, public_work_title
 
 
 def actor(role: AppRole, suffix: int) -> CurrentUser:
@@ -46,10 +49,15 @@ class MemoryCommunityService:
         now = datetime.now(UTC)
         self.upcoming = [
             UpcomingWork(
-                tracking_id="FIX-UPCOMING", category="Road", status="Scheduled",
+                tracking_id="FIX-UPCOMING", title="Road", category="Road", status="Scheduled",
                 scheduled_for=now + timedelta(days=1),
                 work_details="One lane may be temporarily closed.",
-            )
+            ),
+            UpcomingWork(
+                tracking_id="FIX-UPCOMING-2", title="Water & Civic Sanitation",
+                category="Water & Civic Sanitation", status="Scheduled",
+                scheduled_for=now + timedelta(days=2), work_details="Drainage maintenance.",
+            ),
         ]
         self.notifications: dict[UUID, list[Notification]] = {
             CITIZEN_A.id: [], CITIZEN_B.id: []
@@ -143,10 +151,72 @@ def test_upcoming_work_omits_location_and_private_report_data(community_client):
     response = client.get("/api/upcoming-work")
     assert response.status_code == 200
     assert set(response.json()[0]) == {
-        "tracking_id", "category", "status", "scheduled_for", "work_details"
+        "tracking_id", "title", "category", "status", "scheduled_for", "work_details"
     }
+    assert len(response.json()) == 2
     forbidden = {"latitude", "longitude", "created_by", "description", "citizen_id"}
     assert not forbidden.intersection(response.json()[0])
+
+
+def test_public_work_title_uses_real_category_or_public_work_details():
+    assert public_work_title("Damaged Roads & Potholes", "Lane closure") == "Damaged Roads & Potholes"
+    assert public_work_title("Upcoming-5b20cb38d7c2", "Temporary lane disruption") == "Temporary lane disruption"
+    assert public_work_title("Upcoming-5b20cb38d7c2", None) == "Scheduled Community Work"
+
+
+def test_upcoming_work_fetches_every_page_and_keeps_safe_query(monkeypatch):
+    now = datetime(2026, 10, 10, tzinfo=UTC)
+    rows = [
+        {
+            "report_id": f"00000000-0000-4000-8000-{index:012d}",
+            "scheduled_for": (now + timedelta(days=1, minutes=index)).isoformat(),
+            "notes": f"Public work details {index}",
+            "problem_reports": {
+                "tracking_id": f"FIX-{index:012d}",
+                "category": "Road Repair",
+                "status": "Scheduled",
+            },
+        }
+        for index in range(501)
+    ]
+    requests: list[dict[str, object]] = []
+
+    class FakeResponse:
+        def __init__(self, page):
+            self.status_code = 206 if len(page) == 500 else 200
+            self._page = page
+
+        def json(self):
+            return self._page
+
+    class FakeAsyncClient:
+        def __init__(self, **_):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_):
+            return None
+
+        async def get(self, _url, headers, params):
+            requests.append({"headers": headers, "params": params})
+            start = int(headers["Range"].split("-")[0])
+            return FakeResponse(rows[start:start + 500])
+
+    monkeypatch.setattr("app.services.community.httpx.AsyncClient", FakeAsyncClient)
+    service = CommunityService(Settings(
+        supabase_url="https://example.supabase.co",
+        supabase_publishable_key="publishable",
+        supabase_secret_key="secret",
+    ))
+    result = asyncio.run(service.upcoming_work(now))
+
+    assert len(result) == 501
+    assert [request["headers"]["Range"] for request in requests] == ["0-499", "500-999"]
+    assert all(request["params"]["problem_reports.status"] == "eq.Scheduled" for request in requests)
+    selected = str(requests[0]["params"]["select"])
+    assert not {"description", "latitude", "longitude", "created_by"}.intersection(selected.split(","))
 
 
 @pytest.mark.parametrize("status", ["Approved", "Rejected", "Scheduled", "In Progress", "Solved"])

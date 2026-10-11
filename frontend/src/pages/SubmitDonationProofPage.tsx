@@ -5,6 +5,7 @@ import { useAuth } from '../auth/AuthContext';
 import { CTA } from '../components/common/CTA';
 import { PageHero } from '../components/common/PageHero';
 import { apiRequest } from '../lib/api';
+import { useFeedback } from '../ui/FeedbackContext';
 
 type DonationStatus = 'Pending' | 'Verified' | 'Rejected';
 
@@ -33,6 +34,7 @@ const localDateTimeValue = (): string => {
 
 export const SubmitDonationProofPage: React.FC = () => {
   const { session } = useAuth();
+  const { playFeedback } = useFeedback();
   const [submittedDonation, setSubmittedDonation] = useState<DonationResponse | null>(null);
   const [formData, setFormData] = useState({ transactionId: '', amount: '', transactionAt: localDateTimeValue() });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -100,8 +102,10 @@ export const SubmitDonationProofPage: React.FC = () => {
         method: 'POST', body: payload, accessToken: session.access_token,
       });
       setSubmittedDonation(donation);
+      playFeedback('success');
     } catch (cause) {
       setSubmitError(cause instanceof Error ? cause.message : 'Unable to submit donation proof.');
+      playFeedback('error');
     } finally {
       setIsSubmitting(false);
     }
@@ -137,7 +141,7 @@ export const SubmitDonationProofPage: React.FC = () => {
       <section className="py-16 sm:py-24 bg-stone-50 border-b border-stone-200">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           {submittedDonation ? (
-            <div className="rounded border border-stone-300 bg-white p-8 sm:p-12 shadow-sm text-center">
+            <div className="success-feedback rounded border border-stone-300 bg-white p-8 sm:p-12 shadow-sm text-center">
               <div className="w-16 h-16 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center mx-auto mb-6"><Clock className="w-8 h-8" /></div>
               <span className="text-xs font-mono font-bold uppercase tracking-widest text-amber-800 bg-amber-50 border border-amber-200 px-3 py-1 rounded">Submitted for Manual Review</span>
               <h2 className="mt-4 text-2xl sm:text-3xl font-black text-stone-900 tracking-tight">Donation Status: {submittedDonation.status}</h2>

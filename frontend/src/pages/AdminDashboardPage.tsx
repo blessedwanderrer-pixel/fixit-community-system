@@ -17,6 +17,8 @@ import {
 import { useAuth } from '../auth/AuthContext';
 import { PageHero } from '../components/common/PageHero';
 import { ApiError, apiBlob, apiRequest } from '../lib/api';
+import { useFeedback } from '../ui/FeedbackContext';
+import { AnimatedNumber } from '../components/common/AnimatedNumber';
 
 type ReportStatus = 'Submitted' | 'Approved' | 'Rejected' | 'Scheduled' | 'In Progress' | 'Solved' | 'Cancelled';
 type DonationStatus = 'Pending' | 'Verified' | 'Rejected';
@@ -107,7 +109,7 @@ const errorMessage = (cause: unknown, fallback: string) => cause instanceof Erro
 const MetricCard: React.FC<{ label: string; value: string | number; accent?: boolean }> = ({ label, value, accent }) => (
   <div className={`rounded border p-5 shadow-xs ${accent ? 'border-orange-200 bg-orange-50' : 'border-stone-200 bg-white'}`}>
     <div className="text-[11px] font-mono font-bold uppercase tracking-wider text-stone-500">{label}</div>
-    <div className="mt-2 text-2xl font-black text-stone-900">{value}</div>
+    <div className="mt-2 text-2xl font-black text-stone-900">{typeof value === 'number' ? <AnimatedNumber value={value} /> : value}</div>
   </div>
 );
 
@@ -117,6 +119,7 @@ const QueueEmpty: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 
 export const AdminDashboardPage: React.FC = () => {
   const { session, user } = useAuth();
+  const { playFeedback } = useFeedback();
   const [section, setSection] = useState<Section>('analytics');
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [reports, setReports] = useState<Report[]>([]);
@@ -211,9 +214,11 @@ export const AdminDashboardPage: React.FC = () => {
       setReview(null);
       setReportPhoto(null);
       setNotice(`Report decision recorded as ${status}.`);
+      playFeedback('success');
       void loadDashboard();
     } catch (cause) {
       setReviewError(errorMessage(cause, 'Unable to record the report decision.'));
+      playFeedback('error');
     } finally {
       setMutationKey(null);
     }
@@ -233,9 +238,11 @@ export const AdminDashboardPage: React.FC = () => {
       setReview(null);
       setReportPhoto(null);
       setNotice(`Report merged into ${target.tracking_id}.`);
+      playFeedback('success');
       void loadDashboard();
     } catch (cause) {
       setReviewError(errorMessage(cause, 'Unable to merge the report.'));
+      playFeedback('error');
     } finally {
       setMutationKey(null);
     }
@@ -269,9 +276,11 @@ export const AdminDashboardPage: React.FC = () => {
       setDonations((current) => current.filter((item) => item.id !== id));
       setPrivateImage(null);
       setNotice(`Donation review recorded as ${status}.`);
+      playFeedback('success');
       void loadDashboard();
     } catch (cause) {
       setError(errorMessage(cause, 'Unable to review the donation.'));
+      playFeedback('error');
     } finally {
       setMutationKey(null);
     }
@@ -289,9 +298,11 @@ export const AdminDashboardPage: React.FC = () => {
       setExpenses((current) => current.filter((item) => item.id !== id));
       setPrivateImage(null);
       setNotice(`Expense review recorded as ${status}.`);
+      playFeedback('success');
       void loadDashboard();
     } catch (cause) {
       setError(errorMessage(cause, 'Unable to review the expense.'));
+      playFeedback('error');
     } finally {
       setMutationKey(null);
     }

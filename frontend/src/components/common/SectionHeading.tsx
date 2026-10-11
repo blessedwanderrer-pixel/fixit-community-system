@@ -30,9 +30,9 @@ export const SectionHeading: React.FC<SectionHeadingProps> = ({
     >
       <div className={isCenter ? 'mx-auto' : 'max-w-2xl'}>
         {kicker && (
-          <div className="flex items-center gap-2 mb-3">
+          <div className={`flex items-center gap-2 mb-3 ${isCenter ? 'justify-center' : ''}`}>
             <span
-              className={`text-xs font-bold uppercase tracking-widest ${
+              className={`civic-label editorial-rule ${
                 isDark ? 'text-orange-400' : 'text-orange-600'
               }`}
             >
@@ -45,7 +45,7 @@ export const SectionHeading: React.FC<SectionHeadingProps> = ({
           </div>
         )}
         <h2
-          className={`text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight leading-tight ${
+          className={`text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-[-0.045em] leading-[1.02] ${
             isDark ? 'text-white' : 'text-stone-900'
           }`}
           style={{ textWrap: 'balance' }}

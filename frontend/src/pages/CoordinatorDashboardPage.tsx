@@ -17,6 +17,7 @@ import {
 import { useAuth } from '../auth/AuthContext';
 import { PageHero } from '../components/common/PageHero';
 import { apiRequest } from '../lib/api';
+import { useFeedback } from '../ui/FeedbackContext';
 
 type ReportStatus = 'Submitted' | 'Approved' | 'Rejected' | 'Scheduled' | 'In Progress' | 'Solved' | 'Cancelled';
 type EvidenceStage = 'before' | 'after';
@@ -75,6 +76,7 @@ const EmptyQueue: React.FC = () => (
 
 export const CoordinatorDashboardPage: React.FC = () => {
   const { session, user } = useAuth();
+  const { playFeedback } = useFeedback();
   const [reports, setReports] = useState<CoordinatorReport[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -145,8 +147,10 @@ export const CoordinatorDashboardPage: React.FC = () => {
       });
       await loadReports(false);
       setNotice(`${selectedReport.tracking_id} is now Scheduled.`);
+      playFeedback('success');
     } catch (cause) {
       setActionError(errorMessage(cause, 'Unable to schedule this report.'));
+      playFeedback('error');
     } finally {
       setMutation(null);
     }
@@ -165,8 +169,10 @@ export const CoordinatorDashboardPage: React.FC = () => {
       await loadReports(false);
       setNotice(`${selectedReport.tracking_id} moved to ${status}.`);
       setProgressDetails('');
+      playFeedback(status === 'Solved' ? 'complete' : 'success');
     } catch (cause) {
       setActionError(errorMessage(cause, `Unable to move this report to ${status}.`));
+      playFeedback('error');
     } finally {
       setMutation(null);
     }
@@ -192,8 +198,10 @@ export const CoordinatorDashboardPage: React.FC = () => {
       await loadReports(false);
       setEvidencePhoto(null);
       setNotice(`${evidenceStage === 'before' ? 'Before' : 'After'} evidence uploaded for ${selectedReport.tracking_id}.`);
+      playFeedback('success');
     } catch (cause) {
       setActionError(errorMessage(cause, 'Unable to upload work evidence.'));
+      playFeedback('error');
     } finally {
       setMutation(null);
     }
@@ -221,8 +229,10 @@ export const CoordinatorDashboardPage: React.FC = () => {
       setExpenseDescription('');
       setExpenseReceipt(null);
       setNotice(`Expense submitted with status ${expense.status} for Admin review.`);
+      playFeedback('success');
     } catch (cause) {
       setActionError(errorMessage(cause, 'Unable to submit the expense.'));
+      playFeedback('error');
     } finally {
       setMutation(null);
     }

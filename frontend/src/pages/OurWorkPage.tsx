@@ -3,7 +3,7 @@ import { PageHero } from '../components/common/PageHero';
 import { SectionHeading } from '../components/common/SectionHeading';
 import { ProjectCard, ProjectData } from '../components/common/ProjectCard';
 import { CTA } from '../components/common/CTA';
-import { ASSETS } from '../constants/assets';
+import { ASSETS, responsiveImageProps } from '../constants/assets';
 import { 
   ArrowRight, 
   X, 
@@ -82,7 +82,6 @@ export const ALL_PROJECTS: ProjectData[] = [
       'Dignified dining model rather than demeaning handout queues',
       'Consistent daily food access for daily-wage workers',
     ],
-    imageUrl: ASSETS.heroCivicAction,
     featured: false,
   },
   {
@@ -96,7 +95,6 @@ export const ALL_PROJECTS: ProjectData[] = [
       'Stagnant water mitigation and civic drainage sanitization',
       'Neighborhood public health and hygiene information',
     ],
-    imageUrl: ASSETS.heroCivicAction,
     featured: false,
   },
   {
@@ -110,7 +108,6 @@ export const ALL_PROJECTS: ProjectData[] = [
       'Mentorship in trade management and basic budgeting',
       'Focus on breadwinners with dependents and disabled family members',
     ],
-    imageUrl: ASSETS.projectSkillsCentre,
     featured: false,
   },
   {
@@ -124,7 +121,6 @@ export const ALL_PROJECTS: ProjectData[] = [
       'Complete nutritional staples packaged for a family for 30 days',
       'Discreet, confidential delivery respecting beneficiary privacy',
     ],
-    imageUrl: ASSETS.heroCivicAction,
     featured: false,
   },
   {
@@ -138,7 +134,6 @@ export const ALL_PROJECTS: ProjectData[] = [
       'Emergency food, purified water, and shelter distribution',
       'Post-crisis community rehabilitation and hygiene recovery',
     ],
-    imageUrl: ASSETS.projectWaterWell,
     featured: false,
   },
 ];
@@ -198,13 +193,22 @@ export const OurWorkPage: React.FC = () => {
                 className="rounded border border-stone-200 bg-stone-50/50 p-6 flex flex-col justify-between hover:border-orange-300 transition-colors"
               >
                 <div>
-                  <div className="aspect-16/10 rounded overflow-hidden mb-5">
-                    <img
-                      src={feat.imageUrl}
-                      alt={feat.title}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                    />
+                  <div className="project-image-motion aspect-16/10 rounded overflow-hidden mb-5">
+                    {feat.imageUrl ? (
+                      <img
+                        {...responsiveImageProps(feat.imageUrl, '(min-width: 1024px) 33vw, 100vw')}
+                        alt={feat.title}
+                        className="project-image-motion__media w-full h-full object-cover"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    ) : (
+                      <div className="project-image-placeholder" aria-label={`${feat.title} — project photo not published`}>
+                        <span>FIXIT INITIATIVE</span>
+                        <strong>{feat.title}</strong>
+                        <small>Project photo not published</small>
+                      </div>
+                    )}
                   </div>
                   <div className="text-xs font-mono font-bold uppercase text-orange-600 mb-1">
                     {feat.category}
@@ -301,12 +305,21 @@ export const OurWorkPage: React.FC = () => {
               {modalProject.tagline}
             </p>
 
-            <div className="aspect-16/9 rounded overflow-hidden mb-6 bg-stone-100">
-              <img
-                src={modalProject.imageUrl}
-                alt={modalProject.title}
-                className="w-full h-full object-cover"
-              />
+            <div className="project-image-motion aspect-16/9 rounded overflow-hidden mb-6 bg-stone-100">
+              {modalProject.imageUrl ? (
+                <img
+                  {...responsiveImageProps(modalProject.imageUrl, '(min-width: 768px) 640px, 100vw')}
+                  alt={modalProject.title}
+                  className="project-image-motion__media w-full h-full object-cover"
+                  decoding="async"
+                />
+              ) : (
+                <div className="project-image-placeholder" aria-label={`${modalProject.title} — project photo not published`}>
+                  <span>FIXIT INITIATIVE</span>
+                  <strong>{modalProject.title}</strong>
+                  <small>Project photo not published</small>
+                </div>
+              )}
             </div>
 
             <div className="space-y-4 text-sm text-stone-700 leading-relaxed">

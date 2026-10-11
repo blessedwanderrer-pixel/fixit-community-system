@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { PageHero } from '../components/common/PageHero';
 import { useAuth } from '../auth/AuthContext';
 import { apiRequest } from '../lib/api';
+import { useFeedback } from '../ui/FeedbackContext';
+import { VoiceComplaintAssistant } from '../components/report/VoiceComplaintAssistant';
 import { 
   AlertTriangle, 
   MapPin, 
@@ -40,6 +42,7 @@ interface SubmittedReport {
 
 export const ReportProblemPage: React.FC = () => {
   const { session } = useAuth();
+  const { playFeedback } = useFeedback();
   const [submittedReport, setSubmittedReport] = useState<SubmittedReport | null>(null);
   const [copied, setCopied] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -66,7 +69,7 @@ export const ReportProblemPage: React.FC = () => {
     'Water & Civic Sanitation',
     'Waste & Community Cleanliness',
     'Community Infrastructure Hazards',
-  ];
+  ] as const;
 
   // Cleanup object URL on unmount or removal
   useEffect(() => {
@@ -172,8 +175,10 @@ export const ReportProblemPage: React.FC = () => {
         accessToken: session.access_token,
       });
       setSubmittedReport(report);
+      playFeedback('success');
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : 'Unable to submit the report. Please try again.');
+      playFeedback('error');
     } finally {
       setIsSubmitting(false);
     }
@@ -200,7 +205,7 @@ export const ReportProblemPage: React.FC = () => {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           {submittedReport ? (
             /* Submission Success Screen */
-            <div className="rounded border border-stone-300 bg-white p-8 sm:p-12 shadow-sm text-center">
+            <div className="success-feedback rounded border border-stone-300 bg-white p-8 sm:p-12 shadow-sm text-center">
               <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-6">
                 <CheckCircle2 className="w-8 h-8" />
               </div>
@@ -394,6 +399,14 @@ export const ReportProblemPage: React.FC = () => {
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     className="w-full px-3 py-2.5 text-xs border border-stone-300 rounded focus:outline-none focus:border-orange-500"
+                  />
+                  <VoiceComplaintAssistant
+                    accessToken={session?.access_token}
+                    disabled={isSubmitting}
+                    validCategories={categories}
+                    onDraftReady={(description, category) => {
+                      setFormData((current) => ({ ...current, description, category }));
+                    }}
                   />
                 </div>
 

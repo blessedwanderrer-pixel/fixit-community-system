@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Camera, CheckCircle, ArrowRight, ShieldCheck } from 'lucide-react';
-import { ASSETS } from '../../constants/assets';
+import { ASSETS, responsiveImageProps } from '../../constants/assets';
 
 interface BeforeAfterCardProps {
   title: string;
@@ -28,7 +28,7 @@ export const BeforeAfterCard: React.FC<BeforeAfterCardProps> = ({
   const [viewMode, setViewMode] = useState<'comparison' | 'before' | 'after'>('comparison');
 
   return (
-    <div className={`rounded border border-stone-300 bg-white shadow-xs overflow-hidden ${className}`}>
+    <div className={`civic-card rounded-lg border border-stone-300 bg-white overflow-hidden ${className}`}>
       {/* Header bar */}
       <div className="p-4 sm:p-5 border-b border-stone-200 flex flex-wrap items-center justify-between gap-3 bg-stone-50">
         <div>
@@ -80,10 +80,11 @@ export const BeforeAfterCard: React.FC<BeforeAfterCardProps> = ({
             {/* Before Photo */}
             <div className="relative aspect-16/10 group overflow-hidden">
               <img
-                src={beforeImg}
+                {...responsiveImageProps(beforeImg, '(min-width: 768px) 50vw, 100vw')}
                 alt={`Before fix: ${title}`}
                 className="w-full h-full object-cover"
                 loading="lazy"
+                decoding="async"
                 referrerPolicy="no-referrer"
               />
               <div className="absolute top-3 left-3 bg-stone-900/90 text-white text-xs font-mono font-bold px-2 py-1 rounded border border-stone-700">
@@ -94,10 +95,11 @@ export const BeforeAfterCard: React.FC<BeforeAfterCardProps> = ({
             {/* After Photo */}
             <div className="relative aspect-16/10 group overflow-hidden">
               <img
-                src={afterImg}
+                {...responsiveImageProps(afterImg, '(min-width: 768px) 50vw, 100vw')}
                 alt={`After verified fix: ${title}`}
                 className="w-full h-full object-cover"
                 loading="lazy"
+                decoding="async"
                 referrerPolicy="no-referrer"
               />
               <div className="absolute top-3 left-3 bg-emerald-950/90 text-emerald-300 text-xs font-mono font-bold px-2 py-1 rounded border border-emerald-700 flex items-center gap-1.5">
@@ -109,10 +111,11 @@ export const BeforeAfterCard: React.FC<BeforeAfterCardProps> = ({
         ) : viewMode === 'before' ? (
           <div className="relative aspect-16/9 sm:aspect-21/9 overflow-hidden">
             <img
-              src={beforeImg}
+              {...responsiveImageProps(beforeImg, '100vw')}
               alt={`Before: ${title}`}
               className="w-full h-full object-cover"
               loading="lazy"
+              decoding="async"
               referrerPolicy="no-referrer"
             />
             <div className="absolute top-4 left-4 bg-stone-900/90 text-white text-xs font-mono font-bold px-3 py-1 rounded border border-stone-700">
@@ -122,10 +125,11 @@ export const BeforeAfterCard: React.FC<BeforeAfterCardProps> = ({
         ) : (
           <div className="relative aspect-16/9 sm:aspect-21/9 overflow-hidden">
             <img
-              src={afterImg}
+              {...responsiveImageProps(afterImg, '100vw')}
               alt={`After: ${title}`}
               className="w-full h-full object-cover"
               loading="lazy"
+              decoding="async"
               referrerPolicy="no-referrer"
             />
             <div className="absolute top-4 left-4 bg-emerald-950/90 text-emerald-300 text-xs font-mono font-bold px-3 py-1 rounded border border-emerald-700 flex items-center gap-1.5">

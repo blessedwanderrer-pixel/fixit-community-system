@@ -6,6 +6,7 @@ from app.api.routes.health import router as health_router
 from app.api.routes.reports import router as reports_router
 from app.api.routes.finance import router as finance_router
 from app.api.routes.community import router as community_router
+from app.api.routes.voice import router as voice_router
 from app.core.config import get_settings
 
 
@@ -25,6 +26,7 @@ def create_app() -> FastAPI:
     application.include_router(reports_router)
     application.include_router(finance_router)
     application.include_router(community_router)
+    application.include_router(voice_router)
 
     return application
 

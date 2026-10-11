@@ -1,5 +1,6 @@
 import React from 'react';
 import { ArrowUpRight, LucideIcon } from 'lucide-react';
+import { responsiveImageProps } from '../../constants/assets';
 
 export interface ProjectData {
   id: string;
@@ -8,7 +9,7 @@ export interface ProjectData {
   tagline: string;
   description: string;
   keyPillars: string[];
-  imageUrl: string;
+  imageUrl?: string;
   featured?: boolean;
 }
 
@@ -25,17 +26,26 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
 }) => {
   return (
     <article
-      className={`group rounded border border-stone-200 bg-white hover:border-orange-400 transition-all duration-200 flex flex-col overflow-hidden shadow-xs ${className}`}
+      className={`civic-card group rounded-lg border border-stone-200 bg-white hover:border-orange-400 transition-all duration-200 flex flex-col overflow-hidden ${className}`}
     >
       {/* Image container with fallback */}
-      <div className="relative aspect-16/10 bg-stone-100 overflow-hidden">
-        <img
-          src={project.imageUrl}
-          alt={project.title}
-          className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-500 ease-out"
-          loading="lazy"
-          referrerPolicy="no-referrer"
-        />
+      <div className="image-frame project-image-motion relative aspect-16/10 bg-stone-100 overflow-hidden">
+        {project.imageUrl ? (
+          <img
+            {...responsiveImageProps(project.imageUrl, '(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw')}
+            alt={project.title}
+            className="project-image-motion__media w-full h-full object-cover"
+            loading="lazy"
+            decoding="async"
+            referrerPolicy="no-referrer"
+          />
+        ) : (
+          <div className="project-image-placeholder" aria-label={`${project.title} — project photo not published`}>
+            <span>FIXIT INITIATIVE</span>
+            <strong>{project.title}</strong>
+            <small>Project photo not published</small>
+          </div>
+        )}
         <div className="absolute top-3 left-3 bg-stone-900/90 text-white text-xs font-medium px-2.5 py-1 rounded border border-stone-800">
           {project.category}
         </div>
