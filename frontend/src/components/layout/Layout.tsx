@@ -17,7 +17,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   }, [pathname]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#faf8f2] text-stone-900 font-sans selection:bg-orange-500 selection:text-white">
+    <div className="fixit-app-shell min-h-screen flex flex-col bg-[#faf8f2] text-stone-900 font-sans selection:bg-orange-500 selection:text-white">
       <Navbar />
       <main className="flex-1 w-full">{children}</main>
       <Footer />

@@ -24,10 +24,10 @@ export const PageHero: React.FC<PageHeroProps> = ({
 }) => {
   return (
     <section
-      className={`relative civic-noise bg-stone-950 text-white pt-14 pb-16 md:pt-20 md:pb-24 border-b border-stone-800 overflow-hidden ${className}`}
+      className={`relative bg-[#fffdf8] text-stone-950 pt-12 pb-14 md:pt-16 md:pb-20 border-b border-stone-200 overflow-hidden ${className}`}
     >
       {/* Background Civic Grid Pattern */}
-      <div className="absolute inset-0 civic-grid-dark opacity-40 pointer-events-none" />
+      <div className="absolute inset-0 civic-grid-pattern opacity-45 pointer-events-none" />
       
       {/* Subtle safety orange accent glow in corner */}
       <div className="absolute -top-24 -right-24 w-96 h-96 bg-orange-600/10 rounded-full blur-3xl pointer-events-none" />
@@ -38,18 +38,18 @@ export const PageHero: React.FC<PageHeroProps> = ({
         {/* Breadcrumb line if available */}
         {breadcrumbs && (
           <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs text-stone-400 mb-6">
-            <Link to="/" className="hover:text-white transition-colors">
+            <Link to="/" className="hover:text-orange-600 transition-colors">
               Home
             </Link>
             {breadcrumbs.map((crumb, idx) => (
               <React.Fragment key={idx}>
                 <span className="text-stone-600">/</span>
                 {crumb.href ? (
-                  <Link to={crumb.href} className="hover:text-white transition-colors">
+                  <Link to={crumb.href} className="hover:text-orange-600 transition-colors">
                     {crumb.label}
                   </Link>
                 ) : (
-                  <span className="text-stone-300">{crumb.label}</span>
+                  <span className="text-stone-700">{crumb.label}</span>
                 )}
               </React.Fragment>
             ))}
@@ -58,7 +58,7 @@ export const PageHero: React.FC<PageHeroProps> = ({
 
         <div className="max-w-3xl">
           <div className="flex flex-wrap items-center gap-3 mb-5">
-            <span className="civic-label text-orange-400 editorial-rule">
+            <span className="civic-label text-orange-600 editorial-rule">
               {kicker}
             </span>
             {badgeText && (
@@ -70,13 +70,13 @@ export const PageHero: React.FC<PageHeroProps> = ({
           </div>
 
           <h1
-            className="text-4xl sm:text-5xl md:text-6xl font-black tracking-[-0.055em] text-white leading-[0.98]"
+            className="text-4xl sm:text-5xl md:text-6xl font-black uppercase tracking-[-0.055em] text-stone-950 leading-[0.92]"
             style={{ textWrap: 'balance' }}
           >
             {title}
           </h1>
 
-          <p className="mt-5 text-base sm:text-lg text-stone-300 leading-relaxed max-w-2xl">
+          <p className="mt-5 text-base sm:text-lg text-stone-600 leading-relaxed max-w-2xl">
             {subtitle}
           </p>
 
@@ -85,7 +85,7 @@ export const PageHero: React.FC<PageHeroProps> = ({
               {actionPrimary && (
                 <Link
                   to={actionPrimary.href}
-                  className="civic-button-primary inline-flex items-center justify-center px-5 py-3 text-sm font-bold text-white bg-orange-600 hover:bg-orange-500 rounded transition-colors whitespace-nowrap"
+                  className="fixit-button-primary justify-center whitespace-nowrap"
                 >
                   {actionPrimary.label}
                 </Link>
@@ -93,7 +93,7 @@ export const PageHero: React.FC<PageHeroProps> = ({
               {actionSecondary && (
                 <Link
                   to={actionSecondary.href}
-                  className="inline-flex items-center justify-center px-5 py-2.5 text-sm font-semibold text-stone-200 hover:text-white bg-stone-800 hover:bg-stone-700 border border-stone-700 rounded transition-colors whitespace-nowrap"
+                  className="fixit-button-secondary justify-center whitespace-nowrap"
                 >
                   {actionSecondary.label}
                 </Link>

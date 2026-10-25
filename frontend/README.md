@@ -1,20 +1,24 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# FixIt frontend
 
-# Run and deploy your AI Studio app
+React 19, TypeScript, and Vite frontend for the FixIt Community System.
 
-This contains everything you need to run your app locally.
+## Local setup
 
-View your app in AI Studio: https://ai.studio/apps/15a30fc1-0889-4297-8df1-6eec96a22462
+```powershell
+npm install
+Copy-Item .env.example .env
+npm run dev
+```
 
-## Run Locally
+The browser needs only the public Supabase URL/publishable key and the FastAPI base URL documented in `.env.example`. Never expose the Supabase secret key or Groq API key through a `VITE_*` variable.
 
-**Prerequisites:**  Node.js
+## Verification
 
+```powershell
+npm run test
+npm run lint
+npm run build
+```
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+`npm run test
+npm run lint` currently performs the strict TypeScript no-emit check. The production build is generated in `dist`.

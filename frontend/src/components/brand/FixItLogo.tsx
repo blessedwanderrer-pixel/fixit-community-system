@@ -11,19 +11,20 @@ interface FixItLogoProps {
 export const FixItLogo: React.FC<FixItLogoProps> = ({
   className = '',
   size = 'md',
+  variant = 'light',
   linkToHome = true,
 }) => {
   const heightMap = {
-    sm: 'h-8',
-    md: 'h-10',
-    lg: 'h-14',
-    xl: 'h-20',
+    sm: 'h-9',
+    md: 'h-12',
+    lg: 'h-16',
+    xl: 'h-24',
   };
 
   const logoContent = (
     <div className={`inline-flex items-center select-none ${className}`}>
       <img
-        src="/brand/fixit-logo.png"
+        src={variant === 'light' ? '/brand/fixit-logo-transparent.png' : '/brand/fixit-logo.png'}
         alt="#FIXIT Pakistan"
         className={`${heightMap[size]} w-auto object-contain`}
       />

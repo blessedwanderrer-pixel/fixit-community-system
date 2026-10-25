@@ -10,6 +10,9 @@ import { UpcomingWorkPage } from './pages/UpcomingWorkPage';
 import { FAQPage } from './pages/FAQPage';
 import { ContactPage } from './pages/ContactPage';
 import { LoginPage } from './pages/LoginPage';
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
+import { SignupPage } from './pages/SignupPage';
 import { ReportProblemPage } from './pages/ReportProblemPage';
 import { TrackReportPage } from './pages/TrackReportPage';
 import { SubmitDonationProofPage } from './pages/SubmitDonationProofPage';
@@ -17,10 +20,12 @@ import { CitizenDashboardPage } from './pages/CitizenDashboardPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { CoordinatorDashboardPage } from './pages/CoordinatorDashboardPage';
 import { ProtectedRoute, RoleGuard } from './auth/RouteGuards';
+import { ApiLoadingIndicator } from './components/common/ApiLoadingIndicator';
 
 export default function App() {
   return (
     <BrowserRouter>
+      <ApiLoadingIndicator />
       <Layout>
         <Routes>
           <Route path="/" element={<HomePage />} />
@@ -32,6 +37,9 @@ export default function App() {
           <Route path="/faq" element={<FAQPage />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route element={<ProtectedRoute />}>
             <Route element={<RoleGuard allowedRole="citizen" />}>
               <Route path="/citizen" element={<CitizenDashboardPage />} />

@@ -37,3 +37,17 @@ htmlcov/
 .DS_Store
 Thumbs.db
 
+# Local design reviews, generated presentations, and delivery evidence
+/.audit-*.png
+/.design-*.png
+/.loader-*.png
+/.production-*.png
+/.presentation-build/
+/.slide-build/
+/.pytest_cache-deploy-quarantine/
+/output/
+/presentation-output/
+/design-qa.md
+/FIXIT_FINAL_DELIVERY_AUDIT.md
+/REMINDER_TEST_EVIDENCE.md
+

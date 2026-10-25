@@ -24,6 +24,9 @@ from app.models.reports import (
     ReportStatus,
     WorkSchedule,
     WorkTransition,
+    WorkVerificationDecision,
+    WorkVerificationReview,
+    WorkVerificationStatus,
 )
 from app.services.triage import AITriageError, GroqTriageService
 from app.services.storage import StorageService
@@ -32,7 +35,9 @@ REPORT_SELECT = (
     "id,tracking_id,created_by,description,category,latitude,longitude,status,"
     "status_changed_by,status_changed_at,merged_into_report_id,created_at,updated_at,"
     "report_media(id,stage,storage_bucket,storage_object_path,created_at),"
-    "work_records(id,coordinator_id,scheduled_for,started_at,completed_at,notes,created_at,updated_at)"
+    "work_records(id,coordinator_id,scheduled_for,started_at,completed_at,notes,"
+    "verification_status,verification_reason,public_summary,image_analysis,submitted_for_verification_at,"
+    "verified_by,verified_at,created_at,updated_at)"
 )
 
 
@@ -100,6 +105,11 @@ class ReportService:
             "REPORT_ALREADY_MERGED": 409,
             "MERGE_TARGET_NOT_ACTIVE": 409,
             "DUPLICATE_CANDIDATE_REQUIRED": 409,
+            "PUBLIC_SUMMARY_REQUIRED": 422,
+            "VERIFICATION_REQUIRES_IN_PROGRESS": 409,
+            "PENDING_VERIFICATION_NOT_FOUND": 409,
+            "OBJECTION_REASON_REQUIRED": 422,
+            "INVALID_VERIFICATION_DECISION": 422,
         }
         if message in status_map:
             raise HTTPException(status_code=status_map[message], detail=message)
@@ -476,6 +486,154 @@ class ReportService:
             },
         )
         return self._normalize_report(payload)
+
+    async def submit_work_verification(
+        self, report_id: UUID, coordinator: CurrentUser, work_details: str | None
+    ) -> dict[str, Any]:
+        report = await self._get_report_as_service(report_id)
+        if report.status is not ReportStatus.IN_PROGRESS:
+            raise HTTPException(status_code=409, detail="VERIFICATION_REQUIRES_IN_PROGRESS")
+        if not any(record.coordinator_id == coordinator.id for record in report.work_records):
+            raise HTTPException(status_code=403, detail="REPORT_FORBIDDEN")
+        valid_stages = await self.valid_evidence_stages(report)
+        if not {MediaStage.BEFORE, MediaStage.AFTER}.issubset(valid_stages):
+            raise HTTPException(status_code=409, detail="MISSING_BEFORE_AFTER_EVIDENCE")
+        details = (work_details or next(
+            (record.notes for record in report.work_records if record.coordinator_id == coordinator.id),
+            None,
+        ))
+        before_bytes, before_type = await self.work_evidence(report_id, MediaStage.BEFORE)
+        after_bytes, after_type = await self.work_evidence(report_id, MediaStage.AFTER)
+        try:
+            analysis = await self.triage.analyze_work_evidence(
+                category=report.category,
+                problem_description=report.description,
+                work_details=details,
+                before_image=before_bytes,
+                before_content_type=before_type,
+                after_image=after_bytes,
+                after_content_type=after_type,
+            )
+            summary = analysis.solved_work_description
+            image_analysis: dict[str, object] = analysis.model_dump()
+        except AITriageError:
+            category = (report.category or "community issue").strip()
+            summary = "\n".join([
+                f"Residents reported a {category.lower()} problem.",
+                "The original complaint was recorded for community review.",
+                f"The coordinator reported: {(details or 'work completed').strip()}.",
+                "Before and after evidence was uploaded for administrator review.",
+                "Automated image analysis was unavailable, so no visual match is claimed.",
+                "An administrator must inspect the evidence before publication.",
+            ])
+            image_analysis = {
+                "analysis_available": False,
+                "matches_reported_problem": None,
+                "confidence": "low",
+                "concerns": ["Automated image analysis was unavailable; manual review is required."],
+            }
+        return await self._rpc("fixit_submit_work_verification", {
+            "p_report_id": str(report_id),
+            "p_coordinator_id": str(coordinator.id),
+            "p_public_summary": summary,
+            "p_work_details": details,
+            "p_image_analysis": image_analysis,
+        })
+
+    async def list_work_verifications(self) -> list[WorkVerificationReview]:
+        reports = await self._query_reports({}, self._service_headers())
+        reviews: list[WorkVerificationReview] = []
+        for report in reports:
+            pending = next(
+                (record for record in report.work_records
+                 if record.verification_status is WorkVerificationStatus.PENDING),
+                None,
+            )
+            if not pending or not pending.public_summary or not pending.submitted_for_verification_at:
+                continue
+            reviews.append(WorkVerificationReview(
+                report_id=report.id,
+                tracking_id=report.tracking_id,
+                category=report.category,
+                problem_description=report.description,
+                work_details=pending.notes,
+                public_summary=pending.public_summary,
+                image_analysis=pending.image_analysis,
+                submitted_at=pending.submitted_for_verification_at,
+                evidence_stages=sorted(await self.valid_evidence_stages(report), key=lambda item: item.value),
+            ))
+        return sorted(reviews, key=lambda item: item.submitted_at, reverse=True)
+
+    async def reanalyze_work_verification(self, report_id: UUID) -> dict[str, Any]:
+        report = await self._get_report_as_service(report_id)
+        pending = next(
+            (record for record in report.work_records
+             if record.verification_status is WorkVerificationStatus.PENDING),
+            None,
+        )
+        if pending is None:
+            raise HTTPException(status_code=409, detail="PENDING_VERIFICATION_NOT_FOUND")
+
+        before_bytes, before_type = await self.work_evidence(report_id, MediaStage.BEFORE)
+        after_bytes, after_type = await self.work_evidence(report_id, MediaStage.AFTER)
+        try:
+            analysis = await self.triage.analyze_work_evidence(
+                category=report.category,
+                problem_description=report.description,
+                work_details=pending.notes,
+                before_image=before_bytes,
+                before_content_type=before_type,
+                after_image=after_bytes,
+                after_content_type=after_type,
+            )
+        except AITriageError as exc:
+            raise HTTPException(status_code=503, detail="AI_EVIDENCE_ANALYSIS_UNAVAILABLE") from exc
+
+        payload = {
+            "public_summary": analysis.solved_work_description,
+            "image_analysis": analysis.model_dump(),
+        }
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.patch(
+                    f"{self.base_url}/rest/v1/work_records",
+                    headers={**self._service_headers(), "Prefer": "return=representation"},
+                    params={"id": f"eq.{pending.id}"},
+                    json=payload,
+                )
+        except httpx.HTTPError as exc:
+            raise HTTPException(status_code=503, detail="Supabase database unavailable") from exc
+        if response.status_code != 200:
+            self._raise_supabase_error(response)
+        rows = response.json()
+        if not isinstance(rows, list) or not rows:
+            raise HTTPException(status_code=502, detail="Unable to save AI evidence analysis")
+        return {"status": "completed", "report_id": str(report_id)}
+
+    async def review_work_verification(
+        self, report_id: UUID, admin: CurrentUser, decision: WorkVerificationDecision
+    ) -> dict[str, Any]:
+        if decision.decision is WorkVerificationStatus.OBJECTED and not (decision.reason or "").strip():
+            raise HTTPException(status_code=422, detail="OBJECTION_REASON_REQUIRED")
+        return await self._rpc("fixit_review_work_verification", {
+            "p_report_id": str(report_id),
+            "p_admin_id": str(admin.id),
+            "p_decision": decision.decision.value,
+            "p_reason": decision.reason,
+        })
+
+    async def work_evidence(self, report_id: UUID, stage: MediaStage) -> tuple[bytes, str]:
+        if self.storage is None:
+            raise HTTPException(status_code=503, detail="Supabase Storage is not configured")
+        report = await self._get_report_as_service(report_id)
+        evidence = sorted(
+            (item for item in report.media if item.stage is stage),
+            key=lambda item: item.created_at or report.created_at,
+            reverse=True,
+        )
+        if not evidence:
+            raise HTTPException(status_code=404, detail="Work evidence not found")
+        return await self.storage.download(evidence[0].storage_bucket, evidence[0].storage_object_path)
 
 
 def get_report_service(settings: Settings = Depends(get_settings)) -> ReportService:

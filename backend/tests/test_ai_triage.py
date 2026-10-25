@@ -231,4 +231,64 @@ async def test_ai_triage_accepts_pashto_and_preserves_structured_schema(
     assert result.suggested_category == "Water & Civic Sanitation"
     messages = captured["payload"]["messages"]  # type: ignore[index]
     assert "Pashto" in messages[0]["content"]  # type: ignore[index]
+    assert "untrusted data" in messages[0]["content"]  # type: ignore[index]
     assert report.description in messages[1]["content"]  # type: ignore[index]
+
+
+@pytest.mark.anyio
+async def test_work_evidence_ai_compares_images_and_returns_advisory_mismatch(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    class FakeResponse:
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self) -> dict[str, object]:
+            return {"choices": [{"message": {"content": (
+                '{"before_image_description":"A leaking water pipe is visible.",'
+                '"after_image_description":"A resurfaced road is visible.",'
+                '"comparison_assessment":"The after image does not demonstrate a pipe repair.",'
+                '"matches_reported_problem":false,"confidence":"high",'
+                '"concerns":["After evidence appears unrelated to the reported leak."],'
+                '"solved_work_description":"Residents reported a leaking pipeline.\\n'
+                'The before evidence shows visible water leakage.\\n'
+                'The coordinator reported completing repairs.\\n'
+                'The after evidence shows a resurfaced road.\\n'
+                'It does not visibly confirm pipeline work.\\n'
+                'Administrator review is required."}'
+            )}}]}
+
+    class FakeAsyncClient:
+        def __init__(self, *, timeout: object) -> None:
+            captured["timeout"] = timeout
+
+        async def __aenter__(self) -> "FakeAsyncClient":
+            return self
+
+        async def __aexit__(self, *_: object) -> None:
+            return None
+
+        async def post(self, *_: object, **kwargs: object) -> FakeResponse:
+            captured["payload"] = kwargs["json"]
+            return FakeResponse()
+
+    monkeypatch.setattr("app.services.triage.httpx.AsyncClient", FakeAsyncClient)
+    service = GroqTriageService(Settings(groq_api_key="test-groq"))
+
+    result = await service.analyze_work_evidence(
+        category="Water", problem_description="Pipeline leakage", work_details="Leak repaired",
+        before_image=b"before", before_content_type="image/jpeg",
+        after_image=b"after", after_content_type="image/png",
+    )
+
+    assert result.matches_reported_problem is False
+    assert result.confidence == "high"
+    assert len(result.solved_work_description.splitlines()) == 6
+    payload = captured["payload"]  # type: ignore[assignment]
+    assert payload["model"] == "qwen/qwen3.8-27b"  # type: ignore[index]
+    assert payload["response_format"] == {"type": "json_object"}  # type: ignore[index]
+    content = payload["messages"][1]["content"]  # type: ignore[index]
+    assert content[1]["image_url"]["url"].startswith("data:image/jpeg;base64,")
+    assert content[2]["image_url"]["url"].startswith("data:image/png;base64,")

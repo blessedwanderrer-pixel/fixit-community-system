@@ -23,7 +23,7 @@ import { AnimatedNumber } from '../components/common/AnimatedNumber';
 type ReportStatus = 'Submitted' | 'Approved' | 'Rejected' | 'Scheduled' | 'In Progress' | 'Solved' | 'Cancelled';
 type DonationStatus = 'Pending' | 'Verified' | 'Rejected';
 type ExpenseStatus = 'Pending' | 'Approved' | 'Rejected';
-type Section = 'analytics' | 'reports' | 'donations' | 'expenses';
+type Section = 'analytics' | 'reports' | 'work' | 'donations' | 'expenses';
 
 interface Report {
   id: string;
@@ -71,6 +71,26 @@ interface Expense {
   created_at: string;
 }
 
+interface WorkVerification {
+  report_id: string;
+  tracking_id: string;
+  category: string | null;
+  problem_description: string;
+  work_details: string | null;
+  public_summary: string;
+  image_analysis: {
+    analysis_available?: boolean;
+    before_image_description?: string;
+    after_image_description?: string;
+    comparison_assessment?: string;
+    matches_reported_problem?: boolean | null;
+    confidence?: 'low' | 'medium' | 'high';
+    concerns?: string[];
+  } | null;
+  submitted_at: string;
+  evidence_stages: Array<'before' | 'after'>;
+}
+
 interface Analytics {
   problems: {
     total_reports: number;
@@ -91,7 +111,7 @@ interface Analytics {
 }
 
 interface PrivateImage {
-  kind: 'donation' | 'expense';
+  kind: 'donation' | 'expense' | 'work';
   id: string;
   title: string;
   url: string;
@@ -125,11 +145,13 @@ export const AdminDashboardPage: React.FC = () => {
   const [reports, setReports] = useState<Report[]>([]);
   const [donations, setDonations] = useState<Donation[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [workVerifications, setWorkVerifications] = useState<WorkVerification[]>([]);
+  const [objectionReasons, setObjectionReasons] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [review, setReview] = useState<ReportReview | null>(null);
-  const [reviewLoading, setReviewLoading] = useState(false);
+  const [reviewLoadingId, setReviewLoadingId] = useState<string | null>(null);
   const [reviewError, setReviewError] = useState<string | null>(null);
   const [mutationKey, setMutationKey] = useState<string | null>(null);
   const [imageLoadingKey, setImageLoadingKey] = useState<string | null>(null);
@@ -150,14 +172,16 @@ export const AdminDashboardPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const [metrics, submitted, pendingDonations, pendingExpenses] = await Promise.all([
+      const [metrics, submitted, pendingWork, pendingDonations, pendingExpenses] = await Promise.all([
         apiRequest<Analytics>('/api/admin/analytics?currency=PKR', { accessToken }),
         apiRequest<Report[]>('/api/admin/reports/submitted', { accessToken }),
+        apiRequest<WorkVerification[]>('/api/admin/work-verifications', { accessToken }),
         apiRequest<Donation[]>('/api/admin/donations/pending', { accessToken }),
         apiRequest<Expense[]>('/api/admin/expenses/pending', { accessToken }),
       ]);
       setAnalytics(metrics);
       setReports(submitted);
+      setWorkVerifications(pendingWork);
       setDonations(pendingDonations);
       setExpenses(pendingExpenses);
     } catch (cause) {
@@ -172,8 +196,8 @@ export const AdminDashboardPage: React.FC = () => {
   useEffect(() => () => { if (reportPhoto) URL.revokeObjectURL(reportPhoto.url); }, [reportPhoto]);
 
   const openReportReview = async (reportId: string) => {
-    if (!accessToken || reviewLoading) return;
-    setReviewLoading(true);
+    if (!accessToken || reviewLoadingId !== null) return;
+    setReviewLoadingId(reportId);
     setReviewError(null);
     setReportPhoto(null);
     setReportPhotoError(null);
@@ -197,7 +221,7 @@ export const AdminDashboardPage: React.FC = () => {
     } catch (cause) {
       setReviewError(errorMessage(cause, 'Unable to load the report review.'));
     } finally {
-      setReviewLoading(false);
+      setReviewLoadingId(null);
     }
   };
 
@@ -264,6 +288,66 @@ export const AdminDashboardPage: React.FC = () => {
     }
   };
 
+  const viewWorkEvidence = async (work: WorkVerification, stage: 'before' | 'after') => {
+    if (!accessToken || imageLoadingKey) return;
+    const key = `work:${work.report_id}:${stage}`;
+    setImageLoadingKey(key);
+    setError(null);
+    try {
+      const blob = await apiBlob(`/api/admin/work-verifications/${work.report_id}/evidence/${stage}`, { accessToken });
+      setPrivateImage({ kind: 'work', id: key, title: `${stage === 'before' ? 'Before' : 'After'} evidence · ${work.tracking_id}`, url: URL.createObjectURL(blob) });
+    } catch (cause) {
+      setError(errorMessage(cause, `Unable to load ${stage} evidence.`));
+    } finally {
+      setImageLoadingKey(null);
+    }
+  };
+
+  const reviewWork = async (work: WorkVerification, decision: 'Approved' | 'Objected') => {
+    if (!accessToken || mutationKey) return;
+    const reason = (objectionReasons[work.report_id] ?? '').trim();
+    if (decision === 'Objected' && !reason) {
+      setError('An objection reason is required before it can be sent to the Coordinator.');
+      return;
+    }
+    setMutationKey(`work:${work.report_id}`);
+    setError(null);
+    try {
+      await apiRequest(`/api/admin/work-verifications/${work.report_id}`, {
+        method: 'POST', accessToken, headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ decision, reason: decision === 'Objected' ? reason : null }),
+      });
+      setWorkVerifications((current) => current.filter((item) => item.report_id !== work.report_id));
+      setNotice(decision === 'Approved' ? `${work.tracking_id} is approved and public.` : `Objection sent for ${work.tracking_id}.`);
+      playFeedback('success');
+      void loadDashboard();
+    } catch (cause) {
+      setError(errorMessage(cause, 'Unable to review completed work.'));
+      playFeedback('error');
+    } finally {
+      setMutationKey(null);
+    }
+  };
+
+  const retryWorkAnalysis = async (work: WorkVerification) => {
+    if (!accessToken || mutationKey) return;
+    setMutationKey(`reanalyze:${work.report_id}`);
+    setError(null);
+    try {
+      await apiRequest(`/api/admin/work-verifications/${work.report_id}/reanalyze`, {
+        method: 'POST', accessToken,
+      });
+      setNotice(`AI evidence analysis completed for ${work.tracking_id}.`);
+      playFeedback('success');
+      await loadDashboard();
+    } catch (cause) {
+      setError(errorMessage(cause, 'AI evidence analysis is still unavailable. Please inspect the images manually.'));
+      playFeedback('error');
+    } finally {
+      setMutationKey(null);
+    }
+  };
+
   const reviewDonation = async (id: string, status: 'Verified' | 'Rejected') => {
     if (!accessToken || mutationKey) return;
     const key = `donation:${id}`;
@@ -311,6 +395,7 @@ export const AdminDashboardPage: React.FC = () => {
   const tabs: Array<{ id: Section; label: string; count?: number }> = [
     { id: 'analytics', label: 'Analytics' },
     { id: 'reports', label: 'Report Review', count: reports.length },
+    { id: 'work', label: 'Solved Work', count: workVerifications.length },
     { id: 'donations', label: 'Donations', count: donations.length },
     { id: 'expenses', label: 'Expenses', count: expenses.length },
   ];
@@ -377,10 +462,43 @@ export const AdminDashboardPage: React.FC = () => {
                   {reports.length === 0 ? <QueueEmpty>No submitted reports are awaiting review.</QueueEmpty> : <div className="space-y-3">{reports.map((report) => (
                     <div key={report.id} className="rounded border border-stone-200 bg-white p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <div><div className="font-mono text-xs font-bold text-stone-900">{report.tracking_id}</div><div className="mt-1 text-sm font-bold text-stone-800">{report.category ?? 'Uncategorized'}</div><div className="mt-1 text-xs text-stone-500">Submitted {formatDate(report.created_at)}</div>{report.possible_duplicate && <div className="mt-2 text-xs font-bold text-amber-800">Possible Duplicate · {report.duplicate_candidate_count} candidate(s)</div>}</div>
-                      <button type="button" onClick={() => void openReportReview(report.id)} disabled={reviewLoading} className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold disabled:bg-stone-400"><FileSearch className="w-4 h-4" />{reviewLoading ? 'Loading…' : 'Open Review'}</button>
+                      <button
+                        type="button"
+                        onClick={() => void openReportReview(report.id)}
+                        disabled={reviewLoadingId !== null}
+                        aria-busy={reviewLoadingId === report.id}
+                        className={`inline-flex items-center justify-center gap-2 px-4 py-2 rounded text-white text-xs font-bold ${reviewLoadingId === report.id ? 'bg-stone-500' : 'bg-orange-600 hover:bg-orange-500'} disabled:cursor-wait`}
+                      >
+                        {reviewLoadingId === report.id ? <LoaderCircle className="w-4 h-4 animate-spin" /> : <FileSearch className="w-4 h-4" />}
+                        {reviewLoadingId === report.id ? 'Loading…' : 'Open Review'}
+                      </button>
                     </div>
                   ))}</div>}
                   {reviewError && !review && <div role="alert" className="mt-4 p-4 border border-red-200 bg-red-50 rounded text-sm text-red-900">{reviewError}</div>}
+                </div>
+              )}
+
+              {section === 'work' && (
+                <div>
+                  <div className="mb-5"><div className="text-xs font-mono font-bold uppercase tracking-widest text-orange-600">Completion Verification</div><h2 className="mt-1 text-2xl font-black text-stone-900">Solved Work Awaiting Approval</h2><p className="mt-2 text-sm text-stone-600">Compare both images and review the AI-generated public description before approving.</p></div>
+                  {workVerifications.length === 0 ? <QueueEmpty>No completed work is awaiting approval.</QueueEmpty> : <div className="space-y-5">{workVerifications.map((work) => (
+                    <article key={work.report_id} className="rounded border border-stone-200 bg-white p-5 sm:p-6 shadow-xs">
+                      <div className="flex flex-wrap items-start justify-between gap-3"><div><div className="font-mono text-xs font-bold text-orange-700">{work.tracking_id}</div><h3 className="mt-1 text-lg font-black text-stone-900">{work.category ?? 'Community Work'}</h3><div className="mt-1 text-xs text-stone-500">Submitted {formatDate(work.submitted_at)}</div></div><span className="rounded border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-900">Pending Verification</span></div>
+                      <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4"><div className="rounded border border-stone-200 bg-stone-50 p-4"><div className="text-[11px] font-mono font-bold uppercase text-stone-500">Reported problem</div><p translate="no" className="mt-2 text-sm text-stone-700">{work.problem_description}</p></div><div className="rounded border border-violet-200 bg-violet-50 p-4"><div className="text-[11px] font-mono font-bold uppercase text-violet-700">AI public description · 5–7 lines</div><p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-violet-950">{work.public_summary}</p></div></div>
+                      <div className={`mt-4 rounded border p-4 ${work.image_analysis?.matches_reported_problem === false ? 'border-red-300 bg-red-50' : work.image_analysis?.matches_reported_problem === true ? 'border-emerald-200 bg-emerald-50' : 'border-amber-200 bg-amber-50'}`}>
+                        <div className="flex flex-wrap items-center justify-between gap-2"><div className="flex items-center gap-2"><Bot className="h-4 w-4" /><div className="text-sm font-black text-stone-900">AI Evidence Comparison · Advisory Only</div></div><span className="rounded border border-current/20 bg-white/70 px-2 py-1 text-[11px] font-bold uppercase">{work.image_analysis?.matches_reported_problem === true ? 'Evidence matches complaint' : work.image_analysis?.matches_reported_problem === false ? 'Possible mismatch — inspect carefully' : 'Manual review required'}</span></div>
+                        <p className="mt-2 text-xs text-stone-600">Confidence: {work.image_analysis?.confidence ?? 'low'}. AI cannot approve or reject this work.</p>
+                        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3"><div className="rounded border border-black/10 bg-white/70 p-3"><div className="text-[10px] font-mono font-bold uppercase text-stone-500">What AI sees before</div><p className="mt-1 text-sm text-stone-800">{work.image_analysis?.before_image_description ?? 'Analysis unavailable.'}</p></div><div className="rounded border border-black/10 bg-white/70 p-3"><div className="text-[10px] font-mono font-bold uppercase text-stone-500">What AI sees after</div><p className="mt-1 text-sm text-stone-800">{work.image_analysis?.after_image_description ?? 'Analysis unavailable.'}</p></div></div>
+                        {work.image_analysis?.comparison_assessment && <div className="mt-3 rounded border border-black/10 bg-white/70 p-3"><div className="text-[10px] font-mono font-bold uppercase text-stone-500">Comparison with complaint</div><p className="mt-1 text-sm text-stone-800">{work.image_analysis.comparison_assessment}</p></div>}
+                        {!!work.image_analysis?.concerns?.length && <div className="mt-3"><div className="text-[10px] font-mono font-bold uppercase text-stone-600">Concerns</div><ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-stone-800">{work.image_analysis.concerns.map((concern) => <li key={concern}>{concern}</li>)}</ul></div>}
+                        {work.image_analysis?.analysis_available === false && <button type="button" onClick={() => void retryWorkAnalysis(work)} disabled={mutationKey !== null} className="mt-4 inline-flex items-center gap-2 rounded border border-amber-400 bg-white px-4 py-2.5 text-xs font-bold text-amber-900 disabled:text-stone-400">{mutationKey === `reanalyze:${work.report_id}` && <LoaderCircle className="h-4 w-4 animate-spin" />}{mutationKey === `reanalyze:${work.report_id}` ? 'Analyzing Images…' : 'Retry AI Analysis'}</button>}
+                      </div>
+                      {work.work_details && <div className="mt-4 text-sm text-stone-700"><strong>Coordinator details:</strong> {work.work_details}</div>}
+                      <div className="mt-4 grid grid-cols-2 gap-3"><button type="button" onClick={() => void viewWorkEvidence(work, 'before')} disabled={imageLoadingKey !== null} className="rounded border border-stone-300 px-4 py-2.5 text-xs font-bold hover:border-orange-400 disabled:text-stone-400"><Image className="inline-block w-4 h-4 mr-2" />View Before</button><button type="button" onClick={() => void viewWorkEvidence(work, 'after')} disabled={imageLoadingKey !== null} className="rounded border border-stone-300 px-4 py-2.5 text-xs font-bold hover:border-orange-400 disabled:text-stone-400"><Image className="inline-block w-4 h-4 mr-2" />View After</button></div>
+                      <label className="block mt-5 text-xs font-bold text-stone-700">Objection reason <span className="font-normal text-stone-500">(required only for objection)</span><textarea rows={3} value={objectionReasons[work.report_id] ?? ''} onChange={(event) => setObjectionReasons((current) => ({ ...current, [work.report_id]: event.target.value }))} className="mt-1.5 w-full rounded border border-stone-300 px-3 py-2.5 text-sm font-normal resize-y" placeholder="Explain exactly what the Coordinator must correct." /></label>
+                      <div className="mt-4 flex flex-col-reverse sm:flex-row sm:justify-end gap-2"><button type="button" onClick={() => void reviewWork(work, 'Objected')} disabled={mutationKey !== null || !(objectionReasons[work.report_id] ?? '').trim()} className="rounded border border-red-200 bg-red-50 px-4 py-2.5 text-xs font-bold text-red-800 disabled:text-stone-400">Send Objection</button><button type="button" onClick={() => void reviewWork(work, 'Approved')} disabled={mutationKey !== null} className="rounded bg-emerald-700 px-4 py-2.5 text-xs font-bold text-white disabled:bg-stone-400"><CheckCircle2 className="inline-block w-4 h-4 mr-2" />Approve & Publish</button></div>
+                    </article>
+                  ))}</div>}
                 </div>
               )}
 
@@ -397,7 +515,7 @@ export const AdminDashboardPage: React.FC = () => {
                 <div>
                   <div className="mb-5"><div className="text-xs font-mono font-bold uppercase tracking-widest text-orange-600">Approval Queue</div><h2 className="mt-1 text-2xl font-black text-stone-900">Pending Expenses</h2></div>
                   {expenses.length === 0 ? <QueueEmpty>No expenses are awaiting approval.</QueueEmpty> : <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">{expenses.map((expense) => (
-                    <div key={expense.id} className="rounded border border-stone-200 bg-white p-5 shadow-xs"><div className="flex justify-between gap-3"><div><div className="text-xl font-black text-stone-900">{formatMoney(expense.amount, expense.currency)}</div><div className="mt-1 text-xs text-stone-500">Submitted {formatDate(expense.created_at)}</div></div><span className="h-fit rounded border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-900">{expense.status}</span></div><p className="mt-4 text-sm text-stone-700 line-clamp-3">{expense.description}</p><button type="button" onClick={() => void viewPrivateImage('expense', expense.id, `Expense receipt · ${formatMoney(expense.amount, expense.currency)}`)} disabled={imageLoadingKey !== null} className="mt-5 w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded border border-stone-300 text-xs font-bold text-stone-800 hover:border-orange-400 disabled:text-stone-400"><FileCheck2 className="w-4 h-4" />{imageLoadingKey === `expense:${expense.id}` ? 'Loading Private Receipt…' : 'View Private Receipt'}</button></div>
+                    <div key={expense.id} className="rounded border border-stone-200 bg-white p-5 shadow-xs"><div className="flex justify-between gap-3"><div><div className="text-xl font-black text-stone-900">{formatMoney(expense.amount, expense.currency)}</div><div className="mt-1 text-xs text-stone-500">Submitted {formatDate(expense.created_at)}</div></div><span className="h-fit rounded border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-900">{expense.status}</span></div><p translate="no" className="mt-4 text-sm text-stone-700 line-clamp-3">{expense.description}</p><button type="button" onClick={() => void viewPrivateImage('expense', expense.id, `Expense receipt · ${formatMoney(expense.amount, expense.currency)}`)} disabled={imageLoadingKey !== null} className="mt-5 w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded border border-stone-300 text-xs font-bold text-stone-800 hover:border-orange-400 disabled:text-stone-400"><FileCheck2 className="w-4 h-4" />{imageLoadingKey === `expense:${expense.id}` ? 'Loading Private Receipt…' : 'View Private Receipt'}</button></div>
                   ))}</div>}
                 </div>
               )}
@@ -414,7 +532,7 @@ export const AdminDashboardPage: React.FC = () => {
               <div className="text-xs font-mono font-bold uppercase tracking-widest text-orange-600">Submitted Report</div>
               <h2 id="admin-report-review-title" className="mt-2 pr-10 text-2xl font-black text-stone-900">{review.report.tracking_id}</h2>
               <div className="mt-3 flex flex-wrap gap-2"><span className="rounded border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-bold text-sky-900">{review.report.status}</span><span className="rounded border border-stone-200 bg-stone-50 px-2.5 py-1 text-xs font-bold text-stone-700">{review.report.category ?? 'Uncategorized'}</span></div>
-              <div className="mt-5 rounded border border-stone-200 bg-stone-50 p-4"><div className="text-[11px] font-mono font-bold uppercase text-stone-500">Description</div><p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-stone-700">{review.report.description}</p></div>
+              <div className="mt-5 rounded border border-stone-200 bg-stone-50 p-4"><div className="text-[11px] font-mono font-bold uppercase text-stone-500">Description</div><p translate="no" className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-stone-700">{review.report.description}</p></div>
 
               <div className="mt-6 rounded border border-stone-200 bg-white p-4 sm:p-5">
                 <div className="flex items-center gap-2"><Image className="w-4 h-4 text-orange-600" /><h3 className="text-sm font-black text-stone-900">Submitted Problem Photo</h3></div>
@@ -453,8 +571,8 @@ export const AdminDashboardPage: React.FC = () => {
           <div className="relative w-full max-w-3xl max-h-[92vh] overflow-y-auto rounded border border-stone-300 bg-white shadow-2xl">
             <button type="button" onClick={() => setPrivateImage(null)} className="absolute top-4 right-4 z-10 p-2 rounded bg-white/90 text-stone-600 hover:text-stone-900" aria-label="Close private image"><X className="w-5 h-5" /></button>
             <div className="p-6"><div className="text-xs font-mono font-bold uppercase tracking-widest text-orange-600">Authenticated Private Media</div><h2 id="private-image-title" className="mt-2 pr-10 text-xl font-black text-stone-900">{privateImage.title}</h2><p className="mt-1 text-xs text-stone-500">This temporary image is loaded with your Admin token and is not published as a public URL.</p>
-              <div className="mt-5 rounded border border-stone-200 bg-stone-100 p-2"><img src={privateImage.url} alt={privateImage.kind === 'donation' ? 'Private donation proof' : 'Private expense receipt'} className="mx-auto max-h-[55vh] object-contain" /></div>
-              <div className="mt-5 flex flex-col sm:flex-row justify-end gap-2"><button type="button" onClick={() => privateImage.kind === 'donation' ? void reviewDonation(privateImage.id, 'Rejected') : void reviewExpense(privateImage.id, 'Rejected')} disabled={mutationKey !== null} className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded border border-red-200 bg-red-50 text-xs font-bold text-red-700 disabled:text-stone-400"><XCircle className="w-4 h-4" />Rejected</button><button type="button" onClick={() => privateImage.kind === 'donation' ? void reviewDonation(privateImage.id, 'Verified') : void reviewExpense(privateImage.id, 'Approved')} disabled={mutationKey !== null} className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded bg-emerald-700 text-xs font-bold text-white disabled:bg-stone-400">{mutationKey ? <LoaderCircle className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}{privateImage.kind === 'donation' ? 'Verified' : 'Approved'}</button></div>
+              <div className="mt-5 rounded border border-stone-200 bg-stone-100 p-2"><img src={privateImage.url} alt={privateImage.kind === 'donation' ? 'Private donation proof' : privateImage.kind === 'expense' ? 'Private expense receipt' : 'Private work evidence'} className="mx-auto max-h-[55vh] object-contain" /></div>
+              {privateImage.kind === 'work' ? <div className="mt-5 flex justify-end"><button type="button" onClick={() => setPrivateImage(null)} className="rounded bg-stone-900 px-4 py-2.5 text-xs font-bold text-white">Close Evidence</button></div> : <div className="mt-5 flex flex-col sm:flex-row justify-end gap-2"><button type="button" onClick={() => privateImage.kind === 'donation' ? void reviewDonation(privateImage.id, 'Rejected') : void reviewExpense(privateImage.id, 'Rejected')} disabled={mutationKey !== null} className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded border border-red-200 bg-red-50 text-xs font-bold text-red-700 disabled:text-stone-400"><XCircle className="w-4 h-4" />Rejected</button><button type="button" onClick={() => privateImage.kind === 'donation' ? void reviewDonation(privateImage.id, 'Verified') : void reviewExpense(privateImage.id, 'Approved')} disabled={mutationKey !== null} className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded bg-emerald-700 text-xs font-bold text-white disabled:bg-stone-400">{mutationKey ? <LoaderCircle className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}{privateImage.kind === 'donation' ? 'Verified' : 'Approved'}</button></div>}
             </div>
           </div>
         </div>

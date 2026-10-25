@@ -296,8 +296,8 @@ export const CitizenDashboardPage: React.FC = () => {
                         <div className="flex items-start gap-3">
                           <span className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${notification.read_at ? 'bg-stone-300' : 'bg-orange-600'}`} />
                           <div className="min-w-0 flex-1">
-                            <h3 className="text-sm font-bold text-stone-900">{notification.title}</h3>
-                            <p className="mt-1 text-xs text-stone-600 leading-relaxed">{notification.body}</p>
+                            <h3 translate="no" className="text-sm font-bold text-stone-900">{notification.title}</h3>
+                            <p translate="no" className="mt-1 text-xs text-stone-600 leading-relaxed">{notification.body}</p>
                             <div className="mt-2 text-[11px] text-stone-400">{formatDate(notification.created_at)}</div>
                             {!notification.read_at && (
                               <button
@@ -361,7 +361,7 @@ export const CitizenDashboardPage: React.FC = () => {
 
               <div className="mt-4 rounded bg-stone-50 border border-stone-200 p-4">
                 <div className="text-[11px] font-mono font-bold uppercase text-stone-500">Description</div>
-                <p className="mt-2 text-sm text-stone-700 leading-relaxed whitespace-pre-wrap">{selectedReport.description}</p>
+                <p translate="no" className="mt-2 text-sm text-stone-700 leading-relaxed whitespace-pre-wrap">{selectedReport.description}</p>
               </div>
 
               {detailError && (

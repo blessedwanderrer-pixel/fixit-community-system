@@ -21,6 +21,12 @@ class MediaStage(StrEnum):
     AFTER = "after"
 
 
+class WorkVerificationStatus(StrEnum):
+    PENDING = "Pending"
+    APPROVED = "Approved"
+    OBJECTED = "Objected"
+
+
 class ReportCreate(BaseModel):
     description: str = Field(min_length=1)
     category: str = Field(min_length=1)
@@ -47,6 +53,15 @@ class WorkTransition(BaseModel):
     work_details: str | None = None
 
 
+class WorkVerificationSubmit(BaseModel):
+    work_details: str | None = None
+
+
+class WorkVerificationDecision(BaseModel):
+    decision: WorkVerificationStatus
+    reason: str | None = Field(default=None, max_length=1000)
+
+
 class EvidenceCreate(BaseModel):
     stage: MediaStage
     photo_reference: str = Field(min_length=1)
@@ -67,6 +82,13 @@ class WorkRecord(BaseModel):
     started_at: datetime | None
     completed_at: datetime | None
     notes: str | None
+    verification_status: WorkVerificationStatus | None = None
+    verification_reason: str | None = None
+    public_summary: str | None = None
+    image_analysis: dict[str, object] | None = None
+    submitted_for_verification_at: datetime | None = None
+    verified_by: UUID | None = None
+    verified_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -120,11 +142,27 @@ class CoordinatorReportResponse(BaseModel):
     completed_at: datetime | None = None
     work_details: str | None = None
     evidence_stages: list[MediaStage] = Field(default_factory=list)
+    verification_status: WorkVerificationStatus | None = None
+    verification_reason: str | None = None
+    public_summary: str | None = None
+    submitted_for_verification_at: datetime | None = None
 
 
 class CoordinatorEvidenceResponse(BaseModel):
     stage: MediaStage
     created_at: datetime | None = None
+
+
+class WorkVerificationReview(BaseModel):
+    report_id: UUID
+    tracking_id: str
+    category: str | None
+    problem_description: str
+    work_details: str | None
+    public_summary: str
+    image_analysis: dict[str, object] | None = None
+    submitted_at: datetime
+    evidence_stages: list[MediaStage]
 
 
 class CitizenTrackingReport(BaseModel):

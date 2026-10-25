@@ -102,3 +102,17 @@ async def transparency(
     if len(currency) != 3 or not currency.isalpha():
         raise HTTPException(status_code=422, detail="currency must be a three-letter code")
     return await service.transparency(currency)
+
+
+@router.get("/completed-work/{report_id}/evidence/{stage}", response_class=Response)
+async def public_completed_work_evidence(
+    report_id: UUID,
+    stage: str,
+    service: FinanceService = Depends(get_finance_service),
+) -> Response:
+    content, content_type = await service.public_work_evidence(report_id, stage)
+    return Response(
+        content=content,
+        media_type=content_type,
+        headers={"Cache-Control": "public, max-age=300"},
+    )

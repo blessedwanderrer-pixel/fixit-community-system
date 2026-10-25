@@ -1,5 +1,22 @@
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim().replace(/\/$/, '');
 
+let pendingRequestCount = 0;
+const loadingListeners = new Set<() => void>();
+
+const updatePendingRequests = (change: number) => {
+  pendingRequestCount = Math.max(0, pendingRequestCount + change);
+  loadingListeners.forEach((listener) => listener());
+};
+
+export const subscribeToApiLoading = (listener: () => void) => {
+  loadingListeners.add(listener);
+  return () => {
+    loadingListeners.delete(listener);
+  };
+};
+
+export const getApiLoadingSnapshot = () => pendingRequestCount > 0;
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -45,17 +62,22 @@ export const apiRequest = async <T>(
   requestHeaders.set('Accept', 'application/json');
   if (accessToken) requestHeaders.set('Authorization', `Bearer ${accessToken}`);
 
-  const response = await fetch(`${apiBaseUrl}${path}`, {
-    ...requestOptions,
-    headers: requestHeaders,
-  });
+  updatePendingRequests(1);
+  try {
+    const response = await fetch(`${apiBaseUrl}${path}`, {
+      ...requestOptions,
+      headers: requestHeaders,
+    });
 
-  if (!response.ok) {
-    throw new ApiError(await getErrorMessage(response), response.status);
+    if (!response.ok) {
+      throw new ApiError(await getErrorMessage(response), response.status);
+    }
+
+    if (response.status === 204) return undefined as T;
+    return (await response.json()) as T;
+  } finally {
+    updatePendingRequests(-1);
   }
-
-  if (response.status === 204) return undefined as T;
-  return (await response.json()) as T;
 };
 
 export const apiBlob = async (
@@ -71,14 +93,19 @@ export const apiBlob = async (
   requestHeaders.set('Accept', 'image/jpeg, image/png, image/webp');
   if (accessToken) requestHeaders.set('Authorization', `Bearer ${accessToken}`);
 
-  const response = await fetch(`${apiBaseUrl}${path}`, {
-    ...requestOptions,
-    headers: requestHeaders,
-  });
+  updatePendingRequests(1);
+  try {
+    const response = await fetch(`${apiBaseUrl}${path}`, {
+      ...requestOptions,
+      headers: requestHeaders,
+    });
 
-  if (!response.ok) {
-    throw new ApiError(await getErrorMessage(response), response.status);
+    if (!response.ok) {
+      throw new ApiError(await getErrorMessage(response), response.status);
+    }
+
+    return response.blob();
+  } finally {
+    updatePendingRequests(-1);
   }
-
-  return response.blob();
 };

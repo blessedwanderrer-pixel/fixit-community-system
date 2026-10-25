@@ -8,7 +8,8 @@ ALLOWED_TRANSITIONS: dict[ReportStatus, frozenset[ReportStatus]] = {
     ),
     ReportStatus.APPROVED: frozenset({ReportStatus.SCHEDULED}),
     ReportStatus.SCHEDULED: frozenset({ReportStatus.IN_PROGRESS}),
-    ReportStatus.IN_PROGRESS: frozenset({ReportStatus.SOLVED}),
+    # Final Solved status is set only by the Admin verification RPC.
+    ReportStatus.IN_PROGRESS: frozenset(),
 }
 
 

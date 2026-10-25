@@ -3,6 +3,10 @@ import type { Session } from '@supabase/supabase-js';
 import { apiRequest } from '../lib/api';
 import { getSupabaseClient } from '../lib/supabase';
 import type { CurrentUser } from './types';
+import { hasRecoveryCallbackParameters, hasRecoveryError, updateRecoveredPassword } from './passwordRecovery';
+import { registerCitizen, type CitizenSignupResult } from './signup';
+
+export type PasswordRecoveryStatus = 'idle' | 'checking' | 'valid' | 'invalid' | 'complete';
 
 interface AuthContextValue {
   session: Session | null;
@@ -10,7 +14,10 @@ interface AuthContextValue {
   isLoading: boolean;
   error: string | null;
   signIn: (email: string, password: string) => Promise<CurrentUser>;
+  signUpCitizen: (name: string, email: string, password: string) => Promise<CitizenSignupResult & { currentUser: CurrentUser | null }>;
   signOut: () => Promise<void>;
+  passwordRecoveryStatus: PasswordRecoveryStatus;
+  changeRecoveredPassword: (password: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -23,6 +30,12 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [passwordRecoveryStatus, setPasswordRecoveryStatus] = useState<PasswordRecoveryStatus>(() => {
+    const initialRecoveryUrl = typeof window === 'undefined' ? null : new URL(window.location.href);
+    if (!initialRecoveryUrl || initialRecoveryUrl.pathname !== '/reset-password') return 'idle';
+    if (hasRecoveryError(initialRecoveryUrl)) return 'invalid';
+    return hasRecoveryCallbackParameters(initialRecoveryUrl) ? 'checking' : 'invalid';
+  });
 
   const applySession = useCallback(async (nextSession: Session | null) => {
     setSession(nextSession);
@@ -55,13 +68,23 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
 
     try {
       const supabase = getSupabaseClient();
-      const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
         if (!active) return;
+        if (event === 'PASSWORD_RECOVERY') setPasswordRecoveryStatus('valid');
         window.setTimeout(() => {
           if (active) void applySession(nextSession).catch(() => undefined);
         }, 0);
       });
       unsubscribe = () => data.subscription.unsubscribe();
+
+      const recoveryTimeout = window.setTimeout(() => {
+        if (active) setPasswordRecoveryStatus((current) => current === 'checking' ? 'invalid' : current);
+      }, 5000);
+      const originalUnsubscribe = unsubscribe;
+      unsubscribe = () => {
+        window.clearTimeout(recoveryTimeout);
+        originalUnsubscribe();
+      };
 
       void supabase.auth.getSession().then(({ data: sessionData, error: sessionError }) => {
         if (!active) return;
@@ -104,13 +127,47 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     }
   }, [applySession]);
 
+  const signUpCitizen = useCallback(async (name: string, email: string, password: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const result = await registerCitizen(name, email, password);
+      const currentUser = result.session ? await applySession(result.session) : null;
+      if (currentUser && currentUser.role !== 'citizen') {
+        await getSupabaseClient().auth.signOut();
+        setSession(null);
+        setUser(null);
+        throw new Error('The new account received an invalid role. Access has been blocked.');
+      }
+      return { ...result, currentUser };
+    } catch (cause) {
+      setIsLoading(false);
+      const message = cause instanceof Error ? cause.message : 'Unable to create your account.';
+      setError(message);
+      throw cause;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [applySession]);
+
   const signOut = useCallback(async () => {
     const { error: signOutError } = await getSupabaseClient().auth.signOut();
     if (signOutError) throw signOutError;
     setSession(null);
     setUser(null);
     setError(null);
+    setPasswordRecoveryStatus('idle');
   }, []);
+
+  const changeRecoveredPassword = useCallback(async (password: string) => {
+    await updateRecoveredPassword(password, passwordRecoveryStatus === 'valid');
+    setPasswordRecoveryStatus('complete');
+    const { error: signOutError } = await getSupabaseClient().auth.signOut({ scope: 'global' });
+    if (signOutError) throw signOutError;
+    setSession(null);
+    setUser(null);
+    setError(null);
+  }, [passwordRecoveryStatus]);
 
   const value = useMemo<AuthContextValue>(() => ({
     session,
@@ -118,8 +175,11 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     isLoading,
     error,
     signIn,
+    signUpCitizen,
     signOut,
-  }), [error, isLoading, session, signIn, signOut, user]);
+    passwordRecoveryStatus,
+    changeRecoveredPassword,
+  }), [changeRecoveredPassword, error, isLoading, passwordRecoveryStatus, session, signIn, signOut, signUpCitizen, user]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

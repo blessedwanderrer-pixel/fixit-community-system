@@ -28,3 +28,20 @@ def test_development_cors_allows_react_origin() -> None:
 
     assert response.status_code == 200
     assert response.headers["access-control-allow-origin"] == "http://localhost:5173"
+
+
+def test_production_cors_allows_official_frontend_alias() -> None:
+    origin = "https://fixit-community-web-hassaans-team.vercel.app"
+
+    with TestClient(app) as client:
+        response = client.options(
+            "/api/me",
+            headers={
+                "Origin": origin,
+                "Access-Control-Request-Method": "GET",
+                "Access-Control-Request-Headers": "authorization",
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == origin

@@ -23,6 +23,9 @@ from app.models.reports import (
     ReportStatus,
     WorkSchedule,
     WorkTransition,
+    WorkVerificationDecision,
+    WorkVerificationReview,
+    WorkVerificationStatus,
 )
 from app.services.reports import get_report_service
 
@@ -53,6 +56,7 @@ class MemoryReportService:
         self.reporters: dict[UUID, set[UUID]] = {}
         self.duplicate_candidates: dict[UUID, set[UUID]] = {}
         self.stored_evidence: set[tuple[UUID, MediaStage, str]] = set()
+        self.verifications: dict[UUID, dict[str, object]] = {}
 
     async def create(self, citizen: CurrentUser, data: ReportCreate) -> ProblemReport:
         self.counter += 1
@@ -263,6 +267,57 @@ class MemoryReportService:
         report.status_changed_by = coordinator.id
         return report
 
+    async def submit_work_verification(
+        self, report_id: UUID, coordinator: CurrentUser, work_details: str | None
+    ) -> dict[str, object]:
+        report = self.reports[report_id]
+        valid = await self.valid_evidence_stages(report)
+        if not {MediaStage.BEFORE, MediaStage.AFTER}.issubset(valid):
+            raise HTTPException(status_code=409, detail="MISSING_BEFORE_AFTER_EVIDENCE")
+        now = datetime.now(UTC)
+        self.verifications[report_id] = {
+            "status": WorkVerificationStatus.PENDING,
+            "reason": None,
+            "summary": "FixIt field staff completed the reported repair.",
+            "submitted_at": now,
+            "work_details": work_details,
+        }
+        return self.verifications[report_id]
+
+    async def list_work_verifications(self) -> list[WorkVerificationReview]:
+        return [
+            WorkVerificationReview(
+                report_id=report_id,
+                tracking_id=self.reports[report_id].tracking_id,
+                category=self.reports[report_id].category,
+                problem_description=self.reports[report_id].description,
+                work_details=item["work_details"],
+                public_summary=str(item["summary"]),
+                submitted_at=item["submitted_at"],
+                evidence_stages=sorted(await self.valid_evidence_stages(self.reports[report_id]), key=lambda stage: stage.value),
+            )
+            for report_id, item in self.verifications.items()
+            if item["status"] is WorkVerificationStatus.PENDING
+        ]
+
+    async def review_work_verification(
+        self, report_id: UUID, admin: CurrentUser, decision: WorkVerificationDecision
+    ) -> dict[str, object]:
+        if decision.decision is WorkVerificationStatus.OBJECTED and not (decision.reason or "").strip():
+            raise HTTPException(status_code=422, detail="OBJECTION_REASON_REQUIRED")
+        item = self.verifications[report_id]
+        item["status"] = decision.decision
+        item["reason"] = decision.reason
+        if decision.decision is WorkVerificationStatus.APPROVED:
+            self.reports[report_id].status = ReportStatus.SOLVED
+            self.reports[report_id].status_changed_by = admin.id
+        return item
+
+    async def work_evidence(self, report_id: UUID, stage: MediaStage) -> tuple[bytes, str]:
+        if stage not in await self.valid_evidence_stages(self.reports[report_id]):
+            raise HTTPException(status_code=404, detail="Work evidence not found")
+        return f"{stage.value}-evidence".encode(), "image/jpeg"
+
 
 @pytest.fixture
 def workflow_client() -> tuple[TestClient, MemoryReportService, dict[str, CurrentUser]]:
@@ -344,6 +399,8 @@ def test_coordinator_report_and_evidence_responses_exclude_sensitive_fields(
         "id", "tracking_id", "description", "category", "status", "created_at",
         "updated_at", "assigned_to_current_user", "scheduled_for", "started_at",
         "completed_at", "work_details", "evidence_stages",
+        "verification_status", "verification_reason", "public_summary",
+        "submitted_for_verification_at",
     }
     forbidden = {
         "created_by", "latitude", "longitude", "status_changed_by",
@@ -522,8 +579,7 @@ def test_invalid_coordinator_status_transition_is_rejected(workflow_client) -> N
         json={"status": "Solved"},
     )
 
-    assert response.status_code == 409
-    assert response.json() == {"detail": "INVALID_STATUS_TRANSITION"}
+    assert response.status_code == 422
 
 
 def prepare_in_progress_report(workflow_client) -> tuple[TestClient, MemoryReportService, ProblemReport]:
@@ -538,8 +594,8 @@ def prepare_in_progress_report(workflow_client) -> tuple[TestClient, MemoryRepor
 
 def solve_report(client: TestClient, report_id: UUID):
     return client.post(
-        f"/api/coordinator/reports/{report_id}/status",
-        json={"status": "Solved", "work_details": "Completed repair"},
+        f"/api/coordinator/reports/{report_id}/submit-verification",
+        json={"work_details": "Completed repair"},
     )
 
 
@@ -652,12 +708,19 @@ def test_valid_coordinator_workflow_solves_with_both_evidence_photos(
         )
         assert evidence.status_code == 200
 
+    submitted = client.post(
+        f"/api/coordinator/reports/{report['id']}/submit-verification",
+        json={"work_details": "Repair completed"},
+    )
+    assert submitted.status_code == 200
+
+    active["user"] = ADMIN
     solved = client.post(
-        f"/api/coordinator/reports/{report['id']}/status",
-        json={"status": "Solved", "work_details": "Repair completed"},
+        f"/api/admin/work-verifications/{report['id']}",
+        json={"decision": "Approved", "reason": None},
     )
     assert solved.status_code == 200
-    assert solved.json()["status"] == "Solved"
+    assert client.get("/api/admin/work-verifications").json() == []
 
 
 def test_fake_arbitrary_evidence_reference_is_rejected(workflow_client) -> None:

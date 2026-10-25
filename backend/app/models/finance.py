@@ -53,9 +53,11 @@ class Expense(BaseModel):
 
 
 class PublicWork(BaseModel):
+    report_id: UUID
     tracking_id: str
     category: str | None
     status: str
+    description: str
     completed_at: datetime | None = None
 
 

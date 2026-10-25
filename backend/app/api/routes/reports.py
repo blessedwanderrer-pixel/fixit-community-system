@@ -27,6 +27,9 @@ from app.models.reports import (
     ReportStatus,
     WorkSchedule,
     WorkTransition,
+    WorkVerificationDecision,
+    WorkVerificationReview,
+    WorkVerificationSubmit,
 )
 from app.services.reports import ReportService, get_report_service
 
@@ -78,6 +81,10 @@ def _coordinator_response(
         completed_at=assignment.completed_at if assignment else None,
         work_details=assignment.notes if assignment else None,
         evidence_stages=sorted(evidence_stages, key=lambda stage: stage.value),
+        verification_status=assignment.verification_status if assignment else None,
+        verification_reason=assignment.verification_reason if assignment else None,
+        public_summary=assignment.public_summary if assignment else None,
+        submitted_for_verification_at=assignment.submitted_for_verification_at if assignment else None,
     )
 
 
@@ -253,6 +260,16 @@ async def upload_work_evidence(
     return CoordinatorEvidenceResponse.model_validate(uploaded)
 
 
+@router.post("/coordinator/reports/{report_id}/submit-verification")
+async def submit_work_verification(
+    report_id: UUID,
+    data: WorkVerificationSubmit,
+    coordinator: CurrentUser = Depends(require_coordinator),
+    service: ReportService = Depends(get_report_service),
+) -> dict[str, Any]:
+    return await service.submit_work_verification(report_id, coordinator, data.work_details)
+
+
 @router.post("/coordinator/reports/{report_id}/status", response_model=CoordinatorReportResponse)
 async def transition_report(
     report_id: UUID,
@@ -260,12 +277,56 @@ async def transition_report(
     coordinator: CurrentUser = Depends(require_coordinator),
     service: ReportService = Depends(get_report_service),
 ) -> CoordinatorReportResponse:
-    if data.status not in {ReportStatus.IN_PROGRESS, ReportStatus.SOLVED}:
+    if data.status is not ReportStatus.IN_PROGRESS:
         raise HTTPException(
             status_code=422,
-            detail="Coordinator status must be In Progress or Solved",
+            detail="Coordinator may only start scheduled work",
         )
     report = await service.transition(report_id, coordinator, data)
     return _coordinator_response(
         report, coordinator, await service.valid_evidence_stages(report)
+    )
+
+
+@router.get("/admin/work-verifications", response_model=list[WorkVerificationReview])
+async def list_work_verifications(
+    _: CurrentUser = Depends(require_admin),
+    service: ReportService = Depends(get_report_service),
+) -> list[WorkVerificationReview]:
+    return await service.list_work_verifications()
+
+
+@router.post("/admin/work-verifications/{report_id}")
+async def review_work_verification(
+    report_id: UUID,
+    data: WorkVerificationDecision,
+    admin: CurrentUser = Depends(require_admin),
+    service: ReportService = Depends(get_report_service),
+) -> dict[str, Any]:
+    return await service.review_work_verification(report_id, admin, data)
+
+
+@router.post("/admin/work-verifications/{report_id}/reanalyze")
+async def reanalyze_work_verification(
+    report_id: UUID,
+    _: CurrentUser = Depends(require_admin),
+    service: ReportService = Depends(get_report_service),
+) -> dict[str, Any]:
+    return await service.reanalyze_work_verification(report_id)
+
+
+@router.get("/admin/work-verifications/{report_id}/evidence/{stage}", response_class=Response)
+async def admin_work_evidence(
+    report_id: UUID,
+    stage: MediaStage,
+    _: CurrentUser = Depends(require_admin),
+    service: ReportService = Depends(get_report_service),
+) -> Response:
+    if stage not in {MediaStage.BEFORE, MediaStage.AFTER}:
+        raise HTTPException(status_code=422, detail="Evidence stage must be before or after")
+    content, content_type = await service.work_evidence(report_id, stage)
+    return Response(
+        content=content,
+        media_type=content_type,
+        headers={"Cache-Control": "private, no-store"},
     )

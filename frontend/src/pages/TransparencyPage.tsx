@@ -8,11 +8,15 @@ import { apiRequest } from '../lib/api';
 import { AnimatedNumber } from '../components/common/AnimatedNumber';
 
 interface CompletedWork {
+  report_id: string;
   tracking_id: string;
   category: string | null;
   status: string;
+  description: string;
   completed_at: string | null;
 }
+
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim().replace(/\/$/, '') ?? '';
 
 interface TransparencySummary {
   verified_donations_total: string | number;
@@ -63,7 +67,7 @@ export const TransparencyPage: React.FC = () => {
               <div className="rounded border border-stone-200 bg-white p-6 sm:p-7 shadow-xs"><div className="w-10 h-10 rounded bg-orange-50 border border-orange-200 flex items-center justify-center"><TrendingUp className="w-5 h-5 text-orange-600" /></div><div className="mt-5 text-xs font-mono font-bold uppercase tracking-wider text-stone-500">Approved Spending Total</div><AnimatedNumber value={summary.approved_spending_total} format={formatMoney} className="mt-2 block text-3xl font-black text-stone-900 font-mono-tabular" /><p className="mt-3 text-sm text-stone-600">Includes only expenses approved through the Admin review workflow.</p></div>
             </div>
             <div className="mt-12"><div className="flex items-center gap-2 mb-5"><CheckCircle2 className="w-5 h-5 text-emerald-700" /><h2 className="text-2xl font-black text-stone-900">Completed Work</h2></div>
-              {summary.completed_work.length === 0 ? <EmptyState title="No completed work published yet" description="Completed community work returned by the public backend will appear here." note="No private report or location data is exposed." icon={CheckCircle2} badge="COMPLETED WORK" /> : <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">{summary.completed_work.map((work) => <article key={work.tracking_id} className="rounded border border-stone-200 bg-white p-5 shadow-xs"><div className="flex items-start justify-between gap-3"><span className="rounded border border-orange-200 bg-orange-50 px-2 py-1 text-xs font-mono font-bold text-orange-700">{work.tracking_id}</span><span className="rounded border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-800">{work.status}</span></div><h3 className="mt-4 text-lg font-black text-stone-900">{work.category ?? 'Uncategorized'}</h3>{work.completed_at && <p className="mt-2 text-xs text-stone-500">Completed {formatDate(work.completed_at)}</p>}</article>)}</div>}
+              {summary.completed_work.length === 0 ? <EmptyState title="No completed work published yet" description="Admin-approved community work will appear here." note="Work remains private until an administrator approves its evidence." icon={CheckCircle2} badge="COMPLETED WORK" /> : <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">{summary.completed_work.map((work) => <article key={work.tracking_id} className="overflow-hidden rounded border border-stone-200 bg-white shadow-xs"><div className="grid grid-cols-2 bg-stone-950"><div className="relative aspect-4/3"><img src={`${apiBaseUrl}/api/completed-work/${work.report_id}/evidence/before`} alt={`Before work for ${work.tracking_id}`} loading="lazy" className="h-full w-full object-cover" /><span className="absolute left-2 top-2 rounded bg-black/80 px-2 py-1 text-[10px] font-bold text-white">BEFORE</span></div><div className="relative aspect-4/3"><img src={`${apiBaseUrl}/api/completed-work/${work.report_id}/evidence/after`} alt={`After approved work for ${work.tracking_id}`} loading="lazy" className="h-full w-full object-cover" /><span className="absolute left-2 top-2 rounded bg-emerald-900/90 px-2 py-1 text-[10px] font-bold text-emerald-100">AFTER · APPROVED</span></div></div><div className="p-5"><div className="flex items-start justify-between gap-3"><span className="rounded border border-orange-200 bg-orange-50 px-2 py-1 text-xs font-mono font-bold text-orange-700">{work.tracking_id}</span><span className="rounded border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-800">Admin Approved</span></div><h3 className="mt-4 text-lg font-black text-stone-900">{work.category ?? 'Community Work'}</h3><p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-stone-600">{work.description}</p>{work.completed_at && <p className="mt-3 text-xs text-stone-500">Approved {formatDate(work.completed_at)}</p>}</div></article>)}</div>}
             </div>
           </>}
         </div>

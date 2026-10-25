@@ -1,140 +1,49 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../auth/AuthContext';
+import { roleHomePath } from '../../auth/types';
 import { FixItLogo } from '../brand/FixItLogo';
-import { ShieldCheck, ArrowRight, ExternalLink } from 'lucide-react';
+import { ArrowUpRight, CalendarClock, Users } from 'lucide-react';
+import { useI18n } from '../../i18n/I18nContext';
 
 export const Footer: React.FC = () => {
+  const { user } = useAuth();
+  const { t } = useI18n();
+
   return (
-    <footer className="relative civic-noise overflow-hidden bg-stone-950 text-stone-300 border-t border-stone-800">
-      <div className="absolute inset-0 civic-grid-dark opacity-20 pointer-events-none" aria-hidden="true" />
-      <div className="absolute inset-x-0 top-0 h-1 civic-stripe-accent" aria-hidden="true" />
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10">
-          {/* Brand Column */}
-          <div className="lg:col-span-2 space-y-4">
-            <FixItLogo size="md" variant="dark" />
-            
-            <p className="text-sm text-stone-400 leading-relaxed max-w-sm">
-              FixIt is a citizen-driven community organization in Pakistan committed to visible, ground-level civic problem solving, social welfare, education, and institutional accountability.
-            </p>
-
-            <div className="pt-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded bg-stone-900 border border-stone-800 text-xs text-stone-300">
-                <ShieldCheck className="w-4 h-4 text-orange-500" />
-                <span>Authenticated Reporting & Donation Tracking Platform</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Column 1: Citizen Platform */}
-          <div>
-            <h4 className="civic-label editorial-rule text-stone-200 mb-4">
-              Citizen Platform
-            </h4>
-            <ul className="space-y-2.5 text-sm">
-              <li>
-                <Link to="/report" className="text-stone-400 hover:text-white transition-colors">
-                  Report a Problem
-                </Link>
-              </li>
-              <li>
-                <Link to="/track" className="text-stone-400 hover:text-white transition-colors">
-                  Track Your Report
-                </Link>
-              </li>
-              <li>
-                <Link to="/how-it-works" className="text-stone-400 hover:text-white transition-colors">
-                  How FixIt Works
-                </Link>
-              </li>
-              <li>
-                <Link to="/transparency" className="text-stone-400 hover:text-white transition-colors">
-                  Transparency Ledger
-                </Link>
-              </li>
-              <li>
-                <Link to="/upcoming-work" className="text-stone-400 hover:text-white transition-colors">
-                  Upcoming Community Work
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* Column 2: Organization & Work */}
-          <div>
-            <h4 className="civic-label editorial-rule text-stone-200 mb-4">
-              Organization
-            </h4>
-            <ul className="space-y-2.5 text-sm">
-              <li>
-                <Link to="/about" className="text-stone-400 hover:text-white transition-colors">
-                  About FixIt & Founders
-                </Link>
-              </li>
-              <li>
-                <Link to="/our-work" className="text-stone-400 hover:text-white transition-colors">
-                  All Social Initiatives
-                </Link>
-              </li>
-              <li>
-                <Link to="/about#evolution" className="text-stone-400 hover:text-white transition-colors">
-                  Evolution of FixIt
-                </Link>
-              </li>
-              <li>
-                <Link to="/faq" className="text-stone-400 hover:text-white transition-colors">
-                  Frequently Asked Questions
-                </Link>
-              </li>
-              <li>
-                <Link to="/contact" className="text-stone-400 hover:text-white transition-colors">
-                  Contact & Inquiries
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* Column 3: Portals & Access */}
-          <div>
-            <h4 className="civic-label editorial-rule text-stone-200 mb-4">
-              Access Portals
-            </h4>
-            <ul className="space-y-2.5 text-sm">
-              <li>
-                <Link to="/login" className="text-stone-400 hover:text-white transition-colors">
-                  Citizen Sign In
-                </Link>
-              </li>
-              <li>
-                <Link to="/login" className="text-stone-400 hover:text-white transition-colors">
-                  Field Coordinator Portal
-                </Link>
-              </li>
-              <li>
-                <Link to="/login" className="text-stone-400 hover:text-white transition-colors">
-                  Operations Admin Login
-                </Link>
-              </li>
-              <li>
-                <Link to="/faq?category=Privacy" className="text-stone-400 hover:text-white transition-colors">
-                  Privacy Policy & Data Rights
-                </Link>
-              </li>
-            </ul>
-          </div>
+    <footer className="border-t border-stone-200 bg-[#fffdf8]">
+      <div className="mx-auto max-w-7xl px-5 pt-10 sm:px-8">
+        <p className="mb-4 text-xs font-black uppercase tracking-[0.2em] text-orange-600">{t('Explore more of FixIt')}</p>
+        <div className="grid overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-[0_18px_55px_-38px_rgba(28,25,23,.55)] md:grid-cols-2">
+          <Link to="/about" className="group relative flex min-h-40 items-start gap-5 p-6 transition-colors hover:bg-orange-50 sm:p-8 md:border-r md:border-stone-200">
+            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-stone-950 text-white"><Users className="h-5 w-5" /></span>
+            <span>
+              <span className="flex items-center gap-2 text-xl font-black text-stone-950">{t('About FixIt')}<ArrowUpRight className="h-5 w-5 text-orange-600 transition-transform group-hover:-translate-y-1 group-hover:translate-x-1" /></span>
+              <span className="mt-2 block max-w-md text-sm leading-relaxed text-stone-600">{t('Learn why FixIt exists and how community action became a public service.')}</span>
+            </span>
+          </Link>
+          <Link to="/upcoming-work" className="group relative flex min-h-40 items-start gap-5 border-t border-stone-200 bg-orange-600 p-6 text-white transition-colors hover:bg-orange-500 sm:p-8 md:border-t-0">
+            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-white text-orange-600"><CalendarClock className="h-5 w-5" /></span>
+            <span>
+              <span className="flex items-center gap-2 text-xl font-black">{t('Upcoming Work')}<ArrowUpRight className="h-5 w-5 transition-transform group-hover:-translate-y-1 group-hover:translate-x-1" /></span>
+              <span className="mt-2 block max-w-md text-sm leading-relaxed text-white/85">{t('See scheduled community work before it begins.')}</span>
+            </span>
+          </Link>
         </div>
-
-        {/* Separator */}
-        <div className="mt-12 pt-8 border-t border-stone-800/80 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-stone-500">
-          <div>
-            © {new Date().getFullYear()} FixIt Pakistan. Community Problem & Donation Tracking System.
-          </div>
-          <div className="flex flex-wrap items-center gap-4">
-            <span>Built for citizen participation & radical civic transparency</span>
-            <span>·</span>
-            <span>Karachi & Pakistan</span>
-          </div>
+      </div>
+      <div className="mx-auto flex max-w-7xl flex-col gap-7 px-5 py-10 sm:px-8 lg:flex-row lg:items-center lg:justify-between">
+        <div className="max-w-md">
+          <FixItLogo size="sm" variant="light" />
+          <p className="mt-3 text-sm leading-relaxed text-stone-600">A simple place for citizens to report community problems and follow the fix.</p>
         </div>
+        <nav aria-label="Footer navigation" className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm font-bold text-stone-700">
+          {user ? <Link to={roleHomePath[user.role]} className="hover:text-orange-600">My Area</Link> : <Link to="/signup" className="hover:text-orange-600">Create Account</Link>}
+          <Link to="/faq" className="hover:text-orange-600">Help</Link>
+          <Link to="/contact" className="hover:text-orange-600">Contact</Link>
+        </nav>
+      </div>
+      <div className="border-t border-stone-200 bg-stone-950 px-5 py-4 text-center text-xs text-stone-400">
+        © {new Date().getFullYear()} FixIt Pakistan. Built for clear citizen action.
       </div>
     </footer>
   );

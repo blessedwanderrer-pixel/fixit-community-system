@@ -203,7 +203,7 @@ class FinanceService:
                 donations, expenses, reports = await __import__("asyncio").gather(
                     client.get(f"{self.base_url}/rest/v1/donations", headers=self._headers(), params={"select": "amount", "status": "eq.Verified", "currency": f"eq.{query_currency}"}),
                     client.get(f"{self.base_url}/rest/v1/expenses", headers=self._headers(), params={"select": "amount", "status": "eq.Approved", "currency": f"eq.{query_currency}"}),
-                    client.get(f"{self.base_url}/rest/v1/problem_reports", headers=self._headers(), params={"select": "tracking_id,category,status,work_records(completed_at)", "status": "eq.Solved", "order": "updated_at.desc"}),
+                    client.get(f"{self.base_url}/rest/v1/problem_reports", headers=self._headers(), params={"select": "id,tracking_id,category,status,work_records!inner(completed_at,public_summary,verification_status)", "status": "eq.Solved", "work_records.verification_status": "eq.Approved", "order": "updated_at.desc"}),
                 )
         except httpx.HTTPError as exc:
             raise HTTPException(status_code=503, detail="Supabase database unavailable") from exc
@@ -212,11 +212,36 @@ class FinanceService:
         works = []
         for row in reports.json():
             records = row.pop("work_records", [])
-            completed = next((r.get("completed_at") for r in records if r.get("completed_at")), None)
-            works.append(PublicWork(**row, completed_at=completed))
+            approved = next((r for r in records if r.get("verification_status") == "Approved"), None)
+            if approved and approved.get("public_summary"):
+                works.append(PublicWork(
+                    report_id=row["id"], tracking_id=row["tracking_id"],
+                    category=row.get("category"), status=row["status"],
+                    description=approved["public_summary"],
+                    completed_at=approved.get("completed_at"),
+                ))
         return TransparencySummary(
             currency=query_currency,
             verified_donations_total=sum((Decimal(str(r["amount"])) for r in donations.json()), Decimal("0")),
             approved_spending_total=sum((Decimal(str(r["amount"])) for r in expenses.json()), Decimal("0")),
             completed_work=works,
         )
+
+    async def public_work_evidence(self, report_id: UUID, stage: str) -> tuple[bytes, str]:
+        if stage not in {"before", "after"}:
+            raise HTTPException(status_code=422, detail="Evidence stage must be before or after")
+        async with httpx.AsyncClient(timeout=self.timeout) as client:
+            approved = await client.get(
+                f"{self.base_url}/rest/v1/work_records", headers=self._headers(),
+                params={"select": "id", "report_id": f"eq.{report_id}", "verification_status": "eq.Approved", "limit": "1"},
+            )
+            media = await client.get(
+                f"{self.base_url}/rest/v1/report_media", headers=self._headers(),
+                params={"select": "storage_bucket,storage_object_path", "report_id": f"eq.{report_id}", "stage": f"eq.{stage}", "order": "created_at.desc", "limit": "1"},
+            )
+        if approved.status_code != 200 or not approved.json():
+            raise HTTPException(status_code=404, detail="Approved work not found")
+        if media.status_code != 200 or not media.json():
+            raise HTTPException(status_code=404, detail="Work evidence not found")
+        item = media.json()[0]
+        return await self.storage.download(item["storage_bucket"], item["storage_object_path"])
